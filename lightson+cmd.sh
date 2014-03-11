@@ -54,5 +54,5 @@ elif [ "$1" = "off" ] || [ "$1" = "false" ] || [ "$1" = "no" ]; then
 elif [ "$1" = "status" ]; then
 	status
 else
-	echo "usage: $0 [command]\non: inhibits\noff: uninhibits\nstatus: print status\nnothing: switches"
+	echo -e "usage: $0 [command]\non: inhibits\noff: uninhibits\nstatus: print status\nnothing: switches"
 fi
