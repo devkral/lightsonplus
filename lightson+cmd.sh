@@ -31,9 +31,9 @@ switch()
 
 if [ "$1" = "" ]; then
 	switch
-elif [ "$1" = "on"|"true"|"yes" ]; then
+elif [ "$1" = "on" ] || [ "$1" = "true" ] || [ "$1" = "yes" ]; then
 	inhibit
-elif [ "$1" = "off"|"false"|"no" ]; then
+elif [ "$1" = "off" ] || [ "$1" = "false" ] || [ "$1" = "no" ]; then
 	uninhibit
 else
 	echo "usage: $0 [command]\non: inhibits\noff: uninhibits,nothing: switches"
