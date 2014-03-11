@@ -11,15 +11,31 @@ inhibitfile="/tmp/lightsoninhibit-$UID-$realdisp"
 
 inhibit()
 {
-	touch "$inhibitfile"
-	echo "inhibited screensaver" | wall
+	if [ ! -e "$inhibitfile" ]; then
+    touch "$inhibitfile"
+	  echo "inhibit screensaver" | wall
+  else
+    echo "screensaver is already inhibited"
+  fi
 }
 uninhibit()
 {
-	rm "$inhibitfile"
-	echo "uninhibited screensaver" | wall
+	if [ -e "$inhibitfile" ]; then
+    rm "$inhibitfile"
+	  echo "uninhibit screensaver" | wall
+  else
+    echo "screensaver is already uninhibited"
+  fi
 }
 
+status()
+{
+	if [ -e "$inhibitfile" ]; then
+	  echo "screensaver is inhibited"
+  else
+    echo "screensaver is uninhibited"
+  fi
+}
 switch()
 {
 	if [ -f "$inhibitfile" ]; then
@@ -35,6 +51,8 @@ elif [ "$1" = "on" ] || [ "$1" = "true" ] || [ "$1" = "yes" ]; then
 	inhibit
 elif [ "$1" = "off" ] || [ "$1" = "false" ] || [ "$1" = "no" ]; then
 	uninhibit
+elif [ "$1" = "status" ]; then
+	status
 else
-	echo "usage: $0 [command]\non: inhibits\noff: uninhibits,nothing: switches"
+	echo "usage: $0 [command]\non: inhibits\noff: uninhibits\nstatus: print status\nnothing: switches"
 fi
