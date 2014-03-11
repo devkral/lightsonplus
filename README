@@ -1,0 +1,10 @@
+tools:
+lightson+.sh daemon which checks if screensaver should be inhibited
+lightson+cmd.sh tool which inhibits screensaver manually
+
+
+this program is basing on:
+https://github.com/iye/lightsOn
+
+Credits for some fixes:
+https://bbs.archlinux.org/viewtopic.php?id=130447

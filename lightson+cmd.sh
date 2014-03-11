@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-#copyright devkral at web.de
+#copyright devkral at web de
 # This script is licensed under GNU GPL version 2.0 or above
 
-# Description: extension to lightsOn
+# Description: extension to lightson+
 
 #realdisp
 realdisp="$(echo "$DISPLAY" | sed -e "s/\.[0-9]*$//" )"

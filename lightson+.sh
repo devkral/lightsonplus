@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# lightsOn.sh
+# lightson+.sh
 
+
+# Copyright (c) 2014 devkral at web de
+# url: https://github.com/devkral/lightson+
+
+#basing on
 # Copyright (c) 2011 iye.cba at gmail com
 # url: https://github.com/iye/lightsOn
 # This script is licensed under GNU GPL version 2.0 or above
@@ -14,7 +19,7 @@
 
 # HOW TO USE: Start the script with the number of seconds you want the checks
 # for fullscreen to be done. Example:
-# "./lightsOn.sh 120 &" will Check every 120 seconds if Mplayer,
+# "./lightson+.sh 120 &" will Check every 120 seconds if Mplayer,
 # VLC, Firefox or Chromium are fullscreen and delay screensaver and Power Management if so.
 # You want the number of seconds to be ~10 seconds less than the time it takes
 # your screensaver or Power Management to activate.
