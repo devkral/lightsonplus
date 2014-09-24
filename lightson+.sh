@@ -105,12 +105,12 @@ done< <(xvinfo | sed -n 's/^screen #\([0-9]\+\)$/\1/p')
 #pgrep cuts off last character
 if [ `pgrep -lc xscreensave` -ge 1 ];then
     screensaver="xscreensaver"
-elif [ `pgrep -lc gnome-screensave` -ge 1 ];then
+elif [ `pgrep -lc gnome-screensave` -ge 1 ] || [ `pgrep -lc gnome-shel` -ge 1 ] ;then
     screensaver="gnome-screensaver"
 elif [ `pgrep -lc kscreensave` -ge 1 ];then
     screensaver="kscreensaver"
 elif [ `pgrep -lc xautoloc` -ge 1 ]; then 
-		screensaver="xautolock"
+    screensaver="xautolock"
 else
     screensaver=""
     echo "No screensaver detected"     
@@ -279,23 +279,26 @@ delayScreensaver()
     # reset inactivity time counter so screensaver is not started
     if [ "$screensaver" == "xscreensaver" ]; then
  	#This tells xscreensaver to pretend that there has just been user activity. This means that if the screensaver is active (the screen is blanked), then this command will cause the screen to un-blank as if there had been keyboard or mouse activity. If the screen is locked, then the password dialog will pop up first, as usual. If the screen is not blanked, then this simulated user activity will re-start the countdown (so, issuing the -deactivate command periodically is one way to prevent the screen from blanking.)
-    	xscreensaver-command -deactivate > /dev/null
+        xscreensaver-command -deactivate > /dev/null
     elif [ "$screensaver" == "gnome-screensaver" ]; then
+				#new way, first try
+        dbus-send --session --dest=org.freedesktop.ScreenSaver --reply-timeout=2000 --type=method_call /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity > /dev/null
+	      #old way second try
 				dbus-send --session --type=method_call --dest=org.gnome.ScreenSaver --reply-timeout=20000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.SimulateUserActivity > /dev/null
     elif [ "$screensaver" == "kscreensaver" ]; then
-    		qdbus org.freedesktop.ScreenSaver /ScreenSaver SimulateUserActivity > /dev/null
+        qdbus org.freedesktop.ScreenSaver /ScreenSaver SimulateUserActivity > /dev/null
     elif [ "$screensaver" == "xautolock" ]; then  #by cadejage
-				xautolock -disable
-				xautolock -enable
-		fi
+        xautolock -disable
+        xautolock -enable
+    fi
 
 
     #Check if DPMS is on. If it is, deactivate and reactivate again. If it is not, do nothing.    
     dpmsStatus=`xset -q | grep -ce 'DPMS is Enabled'`
     if [ $dpmsStatus == 1 ];then
-        	xset -dpms
-        	xset dpms
-	fi
+        xset -dpms
+        xset dpms
+    fi
 	
 }
 
