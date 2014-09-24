@@ -31,9 +31,14 @@
 # xscreensaver/kscreensaver/gnome-screensaver and PowerManagement.
 mplayer_detection=0
 vlc_detection=1
+totem_detection=1
 firefox_flash_detection=1
 chromium_flash_detection=1
+webkit_flash_detection=1 #untested
 html5_detection=1 #checks if the browser window is fullscreen; will disable the screensaver if the browser window is in fullscreen so it doesn't work correctly if you always use the browser (Firefox or Chromium) in fullscreen
+steam_detection=0 #untested
+minitube_detection=0  #untested
+
 defaultdelay=50
 
 #realdisp
@@ -97,14 +102,17 @@ done< <(xvinfo | sed -n 's/^screen #\([0-9]\+\)$/\1/p')
 
 
 # Detect screensaver been used (xscreensaver, kscreensaver, gnome-screensaver or none)
-if [ `pgrep -l xscreensaver | grep -wc xscreensaver` -ge 1 ];then
-    screensaver=xscreensaver
-elif [ `pgrep -l gnome-screensaver | grep -wc gnome-screensaver` -ge 1 ];then
-    screensaver=gnome-screensaver
-elif [ `pgrep -l kscreensaver | grep -wc kscreensaver` -ge 1 ];then
-    screensaver=kscreensaver
+#pgrep cuts off last character
+if [ `pgrep -lc xscreensave` -ge 1 ];then
+    screensaver="xscreensaver"
+elif [ `pgrep -lc gnome-screensave` -ge 1 ];then
+    screensaver="gnome-screensaver"
+elif [ `pgrep -lc kscreensave` -ge 1 ];then
+    screensaver="kscreensaver"
+elif [ `pgrep -lc xautoloc` -ge 1 ]; then 
+		screensaver="xautolock"
 else
-    screensaver=None
+    screensaver=""
     echo "No screensaver detected"     
 fi
 
@@ -157,9 +165,8 @@ isAppRunning()
     if [ $firefox_flash_detection == 1 ];then
         if [[ "$activ_win_title" = *unknown* || "$activ_win_title" = *plugin-container* ]];then
         # Check if plugin-container process is running
-            flash_process=`pgrep -l plugin-container | grep -wc plugin-container`
-            #(why was I using this line avobe? delete if pgrep -lc works ok)
-            #flash_process=`pgrep -lc plugin-containe`
+            #pgrep cuts off last character
+						flash_process=`pgrep -lc plugin-containe`
             if [[ $flash_process -ge 1 ]];then
                 return 1
             fi
@@ -175,14 +182,31 @@ isAppRunning()
             if [[ flash_process -ge 1 ]];then
                 return 1
             fi
+						# Check if Chrome flash is running (by cadejager)
+						flash_process=`pgrep -lf "chrome --type=ppapi "`
+						if [[ -n $flash_process ]];then
+								return 1
+						fi
+        fi
+    fi
+
+		# Check if user want to detect Video fullscreen on WebKit, modify variable webkit_flash_detection if you dont want Webkit detection (by dyskette)
+    if [ $webkit_flash_detection == 1 ];then
+        if [[ "$activ_win_title" = *WebKitPluginProcess* ]];then
+        # Check if WebKit Flash process is running
+            flash_process=`pgrep -lfc ".*WebKitPluginProcess.*flashp.*"`
+            if [[ $flash_process -ge 1 ]];then
+                log "isAppRunning(): webkit flash fullscreen detected"
+                return 1
+            fi
         fi
     fi
 
     #html5 (Firefox or Chromium full-screen)
     if [ $html5_detection == 1 ];then
-        if [[ "$activ_win_title" = *chromium-browser* || "$activ_win_title" = *Firefox* ]];then   
+        if [[ "$activ_win_title" = *chromium-browser* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]];then   
             #check if firefox or chromium is running.
-            if [[ `pgrep -l firefox | grep -wc firefox` -ge 1 || `pgrep -l chromium-browser | grep -wc chromium-browser` -ge 1 ]]; then
+            if [[ `pgrep -lc firefox` -ge 1 || `pgrep -lc chromium-browser` -ge 1  || `pgrep -lc opera` -ge 1 || `pgrep -lc epiphany` -ge 1 ]]; then
                 return 1
             fi
         fi
@@ -212,8 +236,38 @@ isAppRunning()
                 return 1
             fi
         fi
-    fi    
-    
+    fi
+		# Check if user want to detect totem fullscreen, modify variable totem_detection (by lancelotsix)
+		if [ $totem_detection == 1 ];then
+				if [[ "$activ_win_title" = *totem* ]];then
+						#check if totem is running.
+						totem_process=`pgrep -lc totem`
+						if [ $totem_process -ge 1 ]; then
+								return 1
+						fi
+				fi
+		fi
+		if [ $steam_detection == 1 ];then
+				if [[ "$activ_win_title" = *steam* ]];then
+						#check if totem is running.
+						totem_process=`pgrep -lc steam`
+						if [ $totem_process -ge 1 ]; then
+								return 1
+						fi
+				fi
+		fi
+    # Check if user want to detect minitube fullscreen, modify variable minitube_detection (by dyskette)
+    if [ $minitube_detection == 1 ];then
+        if [[ "$activ_win_title" = *minitube* ]];then
+            #check if minitube is running.
+            #minitube_process=`pgrep -l minitube | grep -wc minitube`
+            minitube_process=`pgrep -lc minitube`
+            if [ $minitube_process -ge 1 ]; then
+                log "isAppRunning(): minitube fullscreen detected"
+                return 1
+            fi
+        fi
+    fi
 
 return 0
 }
@@ -227,10 +281,13 @@ delayScreensaver()
  	#This tells xscreensaver to pretend that there has just been user activity. This means that if the screensaver is active (the screen is blanked), then this command will cause the screen to un-blank as if there had been keyboard or mouse activity. If the screen is locked, then the password dialog will pop up first, as usual. If the screen is not blanked, then this simulated user activity will re-start the countdown (so, issuing the -deactivate command periodically is one way to prevent the screen from blanking.)
     	xscreensaver-command -deactivate > /dev/null
     elif [ "$screensaver" == "gnome-screensaver" ]; then
-	dbus-send --session --type=method_call --dest=org.gnome.ScreenSaver --reply-timeout=20000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.SimulateUserActivity > /dev/null
+				dbus-send --session --type=method_call --dest=org.gnome.ScreenSaver --reply-timeout=20000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.SimulateUserActivity > /dev/null
     elif [ "$screensaver" == "kscreensaver" ]; then
-    	qdbus org.freedesktop.ScreenSaver /ScreenSaver SimulateUserActivity > /dev/null
-    fi
+    		qdbus org.freedesktop.ScreenSaver /ScreenSaver SimulateUserActivity > /dev/null
+    elif [ "$screensaver" == "xautolock" ]; then  #by cadejage
+				xautolock -disable
+				xautolock -enable
+		fi
 
 
     #Check if DPMS is on. If it is, deactivate and reactivate again. If it is not, do nothing.    
