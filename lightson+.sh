@@ -77,7 +77,7 @@ elif [ ! -f "$pidfile" ]; then
 else
   if [ "$(cat "$pidfile")" != "$$" ]; then
     echo "an other instance is running, abort!" >&2
-		exit 1
+    exit 1
   else
     rm "$pidfile"
   fi
@@ -124,19 +124,26 @@ checkFullscreen()
     do
         #get id of active window and clean output
         activ_win_id=`DISPLAY=$realdisp.${display} xprop -root _NET_ACTIVE_WINDOW`
-        #activ_win_id=${activ_win_id#*# } #gives error if xprop returns extra ", 0x0" (happens on some distros)
-        activ_win_id=${activ_win_id:40:9}
+        activ_win_id=${activ_win_id##*# }
+				activ_win_id=${activ_win_id:0:9} #eliminate potentially trailing spaces
 
-        # Skip invalid window ids (commented as I could not reproduce a case
-        # where invalid id was returned, plus if id invalid
-        # isActivWinFullscreen will fail anyway.)
-        #if [ "$activ_win_id" = "0x0" ]; then
-        #     continue
-        #fi
-                
+				top_win_id=`DISPLAY=$realdisp.${display} xprop -root _NET_CLIENT_LIST_STACKING`
+        top_win_id=${activ_win_id##*, }
+				top_win_id=${top_win_id:0:9} #eliminate potentially trailing spaces
+
+
         # Check if Active Window (the foremost window) is in fullscreen state
-        isActivWinFullscreen=`DISPLAY=$realdisp.${display} xprop -id $activ_win_id | grep _NET_WM_STATE_FULLSCREEN`
-            if [[ "$isActivWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]];then
+        if [ ${#activ_win_id} -eq 9 ]; then
+            isActivWinFullscreen=`DISPLAY=$realdisp.${display} xprop -id $activ_win_id | grep _NET_WM_STATE_FULLSCREEN`
+        else
+            isActiveWinFullscreen=""
+        fi
+        if [ ${#top_win_id} -eq 9 ]; then
+            isTopWinFullscreen=`DISPLAY=$realdisp.${display} xprop -id $top_win_id | grep _NET_WM_STATE_FULLSCREEN`
+        else
+            isTopWinFullscreen=""
+        fi
+            if [[ "$isActivWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]] || [[ "$isTopWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]];then
                 isAppRunning
                 var=$?
                 if [[ $var -eq 1 ]];then
@@ -166,7 +173,7 @@ isAppRunning()
         if [[ "$activ_win_title" = *unknown* || "$activ_win_title" = *plugin-container* ]];then
         # Check if plugin-container process is running
             #pgrep cuts off last character
-						flash_process=`pgrep -lc plugin-containe`
+            flash_process=`pgrep -lc plugin-containe`
             if [[ $flash_process -ge 1 ]];then
                 return 1
             fi
@@ -178,19 +185,19 @@ isAppRunning()
     if [ $chromium_flash_detection == 1 ];then
         if [[ "$activ_win_title" = *chrom* ]];then   
         # Check if Chromium Flash process is running
-						flash_process=`pgrep -lfc "chromium --type=ppapi"`
+            flash_process=`pgrep -lfc "chromium --type=ppapi"`
             if [[ flash_process -ge 1 ]];then
                 return 1
             fi
-						# Check if Chrome flash is running (by cadejager)
-						flash_process=`pgrep -lf "chrome --type=ppapi "`
-						if [[ -n $flash_process ]];then
-								return 1
-						fi
+            # Check if Chrome flash is running (by cadejager)
+            flash_process=`pgrep -lf "chrome --type=ppapi "`
+            if [[ -n $flash_process ]];then
+                return 1
+            fi
         fi
     fi
 
-		# Check if user want to detect Video fullscreen on WebKit, modify variable webkit_flash_detection if you dont want Webkit detection (by dyskette)
+    # Check if user want to detect Video fullscreen on WebKit, modify variable webkit_flash_detection if you dont want Webkit detection (by dyskette)
     if [ $webkit_flash_detection == 1 ];then
         if [[ "$activ_win_title" = *WebKitPluginProcess* ]];then
         # Check if WebKit Flash process is running
@@ -237,25 +244,25 @@ isAppRunning()
             fi
         fi
     fi
-		# Check if user want to detect totem fullscreen, modify variable totem_detection (by lancelotsix)
-		if [ $totem_detection == 1 ];then
-				if [[ "$activ_win_title" = *totem* ]];then
-						#check if totem is running.
-						totem_process=`pgrep -lc totem`
-						if [ $totem_process -ge 1 ]; then
-								return 1
-						fi
-				fi
-		fi
-		if [ $steam_detection == 1 ];then
-				if [[ "$activ_win_title" = *steam* ]];then
-						#check if totem is running.
-						totem_process=`pgrep -lc steam`
-						if [ $totem_process -ge 1 ]; then
-								return 1
-						fi
-				fi
-		fi
+    # Check if user want to detect totem fullscreen, modify variable totem_detection (by lancelotsix)
+    if [ $totem_detection == 1 ];then
+        if [[ "$activ_win_title" = *totem* ]];then
+            #check if totem is running.
+            totem_process=`pgrep -lc totem`
+            if [ $totem_process -ge 1 ]; then
+                return 1
+            fi
+        fi
+    fi
+    if [ $steam_detection == 1 ];then
+        if [[ "$activ_win_title" = *steam* ]];then
+            #check if totem is running.
+            totem_process=`pgrep -lc steam`
+            if [ $totem_process -ge 1 ]; then
+                return 1
+            fi
+        fi
+    fi
     # Check if user want to detect minitube fullscreen, modify variable minitube_detection (by dyskette)
     if [ $minitube_detection == 1 ];then
         if [[ "$activ_win_title" = *minitube* ]];then
@@ -278,13 +285,13 @@ delayScreensaver()
 
     # reset inactivity time counter so screensaver is not started
     if [ "$screensaver" == "xscreensaver" ]; then
- 	#This tells xscreensaver to pretend that there has just been user activity. This means that if the screensaver is active (the screen is blanked), then this command will cause the screen to un-blank as if there had been keyboard or mouse activity. If the screen is locked, then the password dialog will pop up first, as usual. If the screen is not blanked, then this simulated user activity will re-start the countdown (so, issuing the -deactivate command periodically is one way to prevent the screen from blanking.)
+   #This tells xscreensaver to pretend that there has just been user activity. This means that if the screensaver is active (the screen is blanked), then this command will cause the screen to un-blank as if there had been keyboard or mouse activity. If the screen is locked, then the password dialog will pop up first, as usual. If the screen is not blanked, then this simulated user activity will re-start the countdown (so, issuing the -deactivate command periodically is one way to prevent the screen from blanking.)
         xscreensaver-command -deactivate > /dev/null
     elif [ "$screensaver" == "gnome-screensaver" ]; then
-				#new way, first try
+        #new way, first try
         dbus-send --session --dest=org.freedesktop.ScreenSaver --reply-timeout=2000 --type=method_call /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity > /dev/null
-	      #old way second try
-				dbus-send --session --type=method_call --dest=org.gnome.ScreenSaver --reply-timeout=20000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.SimulateUserActivity > /dev/null
+        #old way second try
+        dbus-send --session --type=method_call --dest=org.gnome.ScreenSaver --reply-timeout=20000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.SimulateUserActivity > /dev/null
     elif [ "$screensaver" == "kscreensaver" ]; then
         qdbus org.freedesktop.ScreenSaver /ScreenSaver SimulateUserActivity > /dev/null
     elif [ "$screensaver" == "xautolock" ]; then  #by cadejage
@@ -299,7 +306,6 @@ delayScreensaver()
         xset -dpms
         xset dpms
     fi
-	
 }
 
 
