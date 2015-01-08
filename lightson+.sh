@@ -111,6 +111,8 @@ elif [ `pgrep -lc kscreensave` -ge 1 ];then
     screensaver="kscreensaver"
 elif [ `pgrep -lc xautoloc` -ge 1 ]; then 
     screensaver="xautolock"
+elif [ `pgrep -lc cinnamon-screen` -ge 1 ]; then
+		screensaver=cinnamon-screensaver
 else
     screensaver=""
     echo "No screensaver detected"     
@@ -294,6 +296,11 @@ delayScreensaver()
         dbus-send --session --type=method_call --dest=org.gnome.ScreenSaver --reply-timeout=20000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.SimulateUserActivity > /dev/null
     elif [ "$screensaver" == "kscreensaver" ]; then
         qdbus org.freedesktop.ScreenSaver /ScreenSaver SimulateUserActivity > /dev/null
+		elif [ "$screensaver" == "cinnamon-screensaver" ]; then
+				#use standard inhibit message, maybe merge with gnome-screensaver
+				dbus-send --session --dest=org.freedesktop.ScreenSaver --reply-timeout=2000 --type=method_call /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity > /dev/null
+				
+				#qdbus org.freedesktop.ScreenSaver / SimulateUserActivity > /dev/null
     elif [ "$screensaver" == "xautolock" ]; then  #by cadejage
         xautolock -disable
         xautolock -enable
