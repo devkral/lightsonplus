@@ -34,6 +34,8 @@ vlc_detection=1
 totem_detection=1
 firefox_flash_detection=1
 chromium_flash_detection=1
+chrome_app_detection=0
+chrome_app_name="Netflix"
 webkit_flash_detection=1 #untested
 html5_detection=1 #checks if the browser window is fullscreen; will disable the screensaver if the browser window is in fullscreen so it doesn't work correctly if you always use the browser (Firefox or Chromium) in fullscreen
 steam_detection=0 #untested
@@ -44,13 +46,10 @@ defaultdelay=50
 #realdisp
 realdisp="$(echo "$DISPLAY" | sed -e "s/\.[0-9]*$//" )"
 
-
-
 inhibitfile="/tmp/lightsoninhibit-$UID-$realdisp"
 pidfile="/tmp/lightson-$UID-$realdisp.pid"
 
 # YOU SHOULD NOT NEED TO MODIFY ANYTHING BELOW THIS LINE
-
 
 # pidlocking
 pidcreate()
@@ -85,13 +84,8 @@ fi
 exit 0
 }
 
-
 pidcreate
 trap "pidremove" EXIT
-
-
-
-
 
 # enumerate all the attached screens
 displays=""
@@ -99,7 +93,6 @@ while read id
 do
     displays="$displays $id"
 done< <(xvinfo | sed -n 's/^screen #\([0-9]\+\)$/\1/p')
-
 
 # Detect screensaver been used (xscreensaver, kscreensaver, gnome-screensaver or none)
 #pgrep cuts off last character
@@ -112,12 +105,11 @@ elif [ `pgrep -lc kscreensave` -ge 1 ];then
 elif [ `pgrep -lc xautoloc` -ge 1 ]; then 
     screensaver="xautolock"
 elif [ `pgrep -lc cinnamon-screen` -ge 1 ]; then
-		screensaver=cinnamon-screensaver
+    screensaver=cinnamon-screensaver
 else
     screensaver=""
     echo "No screensaver detected"     
 fi
-
 
 checkFullscreen()
 {
@@ -132,7 +124,6 @@ checkFullscreen()
 				top_win_id=`DISPLAY=$realdisp.${display} xprop -root _NET_CLIENT_LIST_STACKING`
         top_win_id=${activ_win_id##*, }
 				top_win_id=${top_win_id:0:9} #eliminate potentially trailing spaces
-
 
         # Check if Active Window (the foremost window) is in fullscreen state
         if [ ${#activ_win_id} -eq 9 ]; then
@@ -155,10 +146,6 @@ checkFullscreen()
     done
 }
 
-
-
-    
-
 # check if active windows is mplayer, vlc or firefox
 #TODO only window name in the variable activ_win_id, not whole line. 
 #Then change IFs to detect more specifically the apps "<vlc>" and if process name exist
@@ -167,8 +154,6 @@ isAppRunning()
 {    
     #Get title of active window
     activ_win_title=`xprop -id $activ_win_id | grep "WM_CLASS(STRING)"`   # I used WM_NAME(STRING) before, WM_CLASS more accurate.
-
-
 
     # Check if user want to detect Video fullscreen on Firefox, modify variable firefox_flash_detection if you dont want Firefox detection
     if [ $firefox_flash_detection == 1 ];then
@@ -181,7 +166,6 @@ isAppRunning()
             fi
         fi
     fi
-
     
     # Check if user want to detect Video fullscreen on Chromium, modify variable chromium_flash_detection if you dont want Chromium detection
     if [ $chromium_flash_detection == 1 ];then
@@ -213,14 +197,23 @@ isAppRunning()
 
     #html5 (Firefox or Chromium full-screen)
     if [ $html5_detection == 1 ];then
-        if [[ "$activ_win_title" = *chromium-browser* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]];then   
+        if [[ "$activ_win_title" = *Chrome* || "$activ_win_title" = *chromium-browser* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]];then   
             #check if firefox or chromium is running.
-            if [[ `pgrep -lc firefox` -ge 1 || `pgrep -lc chromium-browser` -ge 1  || `pgrep -lc opera` -ge 1 || `pgrep -lc epiphany` -ge 1 ]]; then
+            if [[ `pgrep -lc chrome` -ge 1 || `pgrep -lc firefox` -ge 1 || `pgrep -lc chromium-browser` -ge 1  || `pgrep -lc opera` -ge 1 || `pgrep -lc epiphany` -ge 1 ]]; then
                 return 1
             fi
         fi
     fi
-
+    
+    #Google Chrome Netflix App detection
+    if [ $chrome_app_detection == 1 ];then
+        if [[ ! -z $chrome_app_name && "$activ_win_title" = *$chrome_app_name* ]];then   
+            #check if google chrome is runnig in app mode
+            if [[ `pgrep -lfc "chrome --app"` -ge 1  ]]; then
+                return 1
+            fi
+        fi
+    fi
     
     #check if user want to detect mplayer fullscreen, modify variable mplayer_detection
     if [ $mplayer_detection == 1 ];then  
@@ -233,7 +226,6 @@ isAppRunning()
             fi
         fi
     fi
-    
     
     # Check if user want to detect vlc fullscreen, modify variable vlc_detection
     if [ $vlc_detection == 1 ];then  
@@ -258,9 +250,9 @@ isAppRunning()
     fi
     if [ $steam_detection == 1 ];then
         if [[ "$activ_win_title" = *steam* ]];then
-            #check if totem is running.
-            totem_process=`pgrep -lc steam`
-            if [ $totem_process -ge 1 ]; then
+            #check if steam is running.
+            steam_process=`pgrep -lc steam`
+            if [ $steam_process -ge 1 ]; then
                 return 1
             fi
         fi
@@ -280,7 +272,6 @@ isAppRunning()
 
 return 0
 }
-
 
 delayScreensaver()
 {
@@ -306,7 +297,6 @@ delayScreensaver()
         xautolock -enable
     fi
 
-
     #Check if DPMS is on. If it is, deactivate and reactivate again. If it is not, do nothing.    
     dpmsStatus=`xset -q | grep -ce 'DPMS is Enabled'`
     if [ $dpmsStatus == 1 ];then
@@ -315,16 +305,12 @@ delayScreensaver()
     fi
 }
 
-
-
 delay=$1
-
 
 # If argument empty, use 50 seconds as default.
 if [ -z "$1" ];then
     delay=$defaultdelay
 fi
-
 
 # If argument is not integer quit.
 if [[ $1 = *[^0-9]* ]]; then
@@ -345,6 +331,4 @@ do
     sleep $delay
 done
 
-
-exit 0    
-
+exit 0
