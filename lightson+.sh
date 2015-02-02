@@ -98,7 +98,7 @@ done< <(xvinfo | sed -n 's/^screen #\([0-9]\+\)$/\1/p')
 #pgrep cuts off last character
 if [ `pgrep -lc xscreensave` -ge 1 ];then
     screensaver="xscreensaver"
-elif [ `pgrep -lc gnome-screensave` -ge 1 ] || [ `pgrep -lc gnome-shel` -ge 1 ] ;then
+elif [ `pgrep -lc gnome-screensave` -ge 1 ] || [ `pgrep -lc gnome-shel` -ge 1 ] || ( [[ "$(gsettings get org.gnome.desktop.session idle-delay | sed 's/uint32 //' 2>&1)" =~ ^-?[0-9]+$ ]] && [ "$(gsettings get org.gnome.desktop.session idle-delay | sed 's/uint32 //' 2>&1)" -gt 0 ] );then
     screensaver="gnome-screensaver"
 elif [ `pgrep -lc kscreensave` -ge 1 ];then
     screensaver="kscreensaver"
