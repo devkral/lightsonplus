@@ -108,7 +108,8 @@ elif [ `pgrep -lc cinnamon-screen` -ge 1 ]; then
     screensaver=cinnamon-screensaver
 else
     screensaver=""
-    echo "No screensaver detected"     
+    echo "No screensaver detected"
+    exit 1
 fi
 
 checkFullscreen()
