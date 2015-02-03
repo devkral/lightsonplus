@@ -198,7 +198,7 @@ isAppRunning()
 
     #html5 (Firefox or Chromium full-screen)
     if [ $html5_detection == 1 ];then
-        if [[ "$activ_win_title" = *Chrome* || "$activ_win_title" = *chromium-browser* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]];then   
+        if [[ "$activ_win_title" = *Chrome* || "$activ_win_title" = *hromium-browser* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]];then   
             #check if firefox or chromium is running.
             if [[ `pgrep -lc chrome` -ge 1 || `pgrep -lc firefox` -ge 1 || `pgrep -lc chromium-browser` -ge 1  || `pgrep -lc opera` -ge 1 || `pgrep -lc epiphany` -ge 1 ]]; then
                 return 1
