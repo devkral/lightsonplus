@@ -92,12 +92,16 @@ if [ `pgrep -lc xscreensave` -ge 1 ]; then
     screensaver="xscreensaver"
 elif [ `pgrep -lc gnome-screensave` -ge 1 ] || [ `pgrep -lc gnome-shel` -ge 1 ] ;then
     screensaver="gnome-screensaver"
+#make sure that the command exists then execute
+elif [ -e "/usr/bin/gnome-screensaver-command" ] && [ `gnome-screensaver-command -q  | grep -c active` -ge 1 ]; then
+    screensaver="gnome-screensaver"
+		
 elif [ `pgrep -lc kscreensave` -ge 1 ]; then
     screensaver="kscreensaver"
 elif [ `pgrep -lc xautoloc` -ge 1 ]; then 
     screensaver="xautolock"
 elif [ `pgrep -lc cinnamon-screen` -ge 1 ]; then
-    screensaver=cinnamon-screensaver
+    screensaver="cinnamon-screensaver"
 else
     screensaver=""
     echo "No screensaver detected"
