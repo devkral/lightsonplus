@@ -163,7 +163,7 @@ isAppRunning() {
             [ `pgrep -c "chromium --type=ppapi"` -ge 1 ] && return 1
         fi
         # Check if Chrome flash is running (by cadejager)
-        [ -n `pgrep -lf "chrome --type=ppapi"` ] && return 1
+        [ `pgrep -c "chrome --type=ppapi"` -ge 1 ] && return 1
     fi
     
     if [ $webkit_flash_detection == 1 ]; then
