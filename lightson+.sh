@@ -88,19 +88,19 @@ done< <(xvinfo | sed -n 's/^screen #\([0-9]\+\)$/\1/p')
 
 # Detect screensaver been used
 # pgrep cuts off last character
-if [ `pgrep -lc xscreensave` -ge 1 ]; then
+if [ `pgrep -c xscreensave` -ge 1 ]; then
     screensaver="xscreensaver"
-elif [ `pgrep -lc gnome-screensave` -ge 1 ] || [ `pgrep -lc gnome-shel` -ge 1 ] ;then
+elif [ `pgrep -c gnome-screensave` -ge 1 ] || [ `pgrep -c gnome-shel` -ge 1 ] ;then
     screensaver="gnome-screensaver"
 # make sure that the command exists then execute
 elif [ `which gnome-screensaver-command` -eq 0 ] && [ `$(which gnome-screensaver-command) -q  | grep -c active` -ge 1 ]; then
     screensaver="gnome-screensaver"
 		
-elif [ `pgrep -lc kscreensave` -ge 1 ]; then
+elif [ `pgrep -c kscreensave` -ge 1 ]; then
     screensaver="kscreensaver"
-elif [ `pgrep -lc xautoloc` -ge 1 ]; then 
+elif [ `pgrep -c xautoloc` -ge 1 ]; then
     screensaver="xautolock"
-elif [ `pgrep -lc cinnamon-screen` -ge 1 ]; then
+elif [ `pgrep -c cinnamon-screen` -ge 1 ]; then
     screensaver="cinnamon-screensaver"
 else
     screensaver=""
@@ -153,14 +153,14 @@ isAppRunning() {
     if [ $firefox_flash_detection == 1 ]; then
         if [[ "$activ_win_title" = *unknown* || "$activ_win_title" = *plugin-container* ]]; then
             # Check if plugin-container process is running, pgrep cuts off last character
-            [ `pgrep -lc plugin-containe` -ge 1 ] && return 1
+            [ `pgrep -c plugin-containe` -ge 1 ] && return 1
         fi
     fi
     
     if [ $chromium_flash_detection == 1 ]; then
         if [ "$activ_win_title" = *chrom* ]; then
             # Check if Chromium Flash process is running
-            [ `pgrep -lfc "chromium --type=ppapi"` -ge 1 ] && return 1
+            [ `pgrep -c "chromium --type=ppapi"` -ge 1 ] && return 1
         fi
         # Check if Chrome flash is running (by cadejager)
         [ -n `pgrep -lf "chrome --type=ppapi"` ] && return 1
@@ -169,14 +169,14 @@ isAppRunning() {
     if [ $webkit_flash_detection == 1 ]; then
         if [ "$activ_win_title" = *WebKitPluginProcess* ]; then
             # Check if WebKit Flash process is running
-            [ `pgrep -lfc ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && (log "isAppRunning(): webkit flash fullscreen detected" && return 1)
+            [ `pgrep -c ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && (log "isAppRunning(): webkit flash fullscreen detected" && return 1)
         fi
     fi
     
     if [ $html5_detection == 1 ]; then
         if [ "$activ_win_title" = *Chrome* || "$activ_win_title" = *hromium-browser* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]; then
             # check if firefox or chromium is running.
-            [ `pgrep -lc chrome` -ge 1 || `pgrep -lc firefox` -ge 1 || `pgrep -lc chromium-browser` -ge 1  || `pgrep -lc opera` -ge 1 || `pgrep -lc epiphany` -ge 1 ] && return 1
+            [ `pgrep -c chrome` -ge 1 || `pgrep -c firefox` -ge 1 || `pgrep -c chromium-browser` -ge 1  || `pgrep -c opera` -ge 1 || `pgrep -c epiphany` -ge 1 ] && return 1
                 fi
         fi
         
