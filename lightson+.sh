@@ -31,14 +31,14 @@ firefox_flash_detection=1
 chromium_flash_detection=1
 chrome_app_detection=0
 chrome_app_name="Netflix"
-webkit_flash_detection=1 #untested
-html5_detection=1 #actually check wether your browser is toggled fullscreen, so simply surfing in fullscreen triggers screensaver inhibition as well (work in progress)
-steam_detection=0 #untested
-minitube_detection=0  #untested
+webkit_flash_detection=1 # untested
+html5_detection=1 # actually check whether your browser is toggled fullscreen, so simply surfing in fullscreen triggers screensaver inhibition as well (work in progress)
+steam_detection=0 # untested
+minitube_detection=0  # untested
 
 defaultdelay=50
 
-#realdisp
+# realdisp
 realdisp=`echo "$DISPLAY" | cut -d. -f1`
 
 inhibitfile="/tmp/lightsoninhibit-$UID-$realdisp"
@@ -48,7 +48,7 @@ pidfile="/tmp/lightson-$UID-$realdisp.pid"
 
 # pidlocking
 pidcreate() {
-    #just one instance can run simultanous
+    # just one instance can run simultaneously
     if [ ! -e "$pidfile" ]; then
         echo "$$" > "$pidfile"
     else
@@ -87,12 +87,12 @@ while read id; do
 done< <(xvinfo | sed -n 's/^screen #\([0-9]\+\)$/\1/p')
 
 # Detect screensaver been used
-#pgrep cuts off last character
+# pgrep cuts off last character
 if [ `pgrep -lc xscreensave` -ge 1 ]; then
     screensaver="xscreensaver"
 elif [ `pgrep -lc gnome-screensave` -ge 1 ] || [ `pgrep -lc gnome-shel` -ge 1 ] ;then
     screensaver="gnome-screensaver"
-#make sure that the command exists then execute
+# make sure that the command exists then execute
 elif [ -e "/usr/bin/gnome-screensaver-command" ] && [ `gnome-screensaver-command -q  | grep -c active` -ge 1 ]; then
     screensaver="gnome-screensaver"
 		
@@ -111,14 +111,14 @@ fi
 checkFullscreen() {
     # loop through every display looking for a fullscreen window
     for display in $displays; do
-        #get id of active window and clean output
+        # get id of active window and clean output
         activ_win_id=`DISPLAY=$realdisp.${display} xprop -root _NET_ACTIVE_WINDOW`
         activ_win_id=${activ_win_id##*# }
-        activ_win_id=${activ_win_id:0:9} #eliminate potentially trailing spaces
+        activ_win_id=${activ_win_id:0:9} # eliminate potentially trailing spaces
         
         top_win_id=`DISPLAY=$realdisp.${display} xprop -root _NET_CLIENT_LIST_STACKING`
         top_win_id=${activ_win_id##*, }
-        top_win_id=${top_win_id:0:9} #eliminate potentially trailing spaces
+        top_win_id=${top_win_id:0:9} # eliminate potentially trailing spaces
         
         # Check if Active Window (the foremost window) is in fullscreen state
         if [ ${#activ_win_id} -eq 9 ]; then
@@ -143,11 +143,11 @@ checkFullscreen() {
 }
 
 # check if active window is mplayer, vlc or firefox
-#TODO only window name in the variable activ_win_id, not whole line. 
-#Then change IFs to detect more specifically the apps "<vlc>" and if process name exist
+# TODO only window name in the variable activ_win_id, not whole line. 
+# Then change IFs to detect more specifically the apps "<vlc>" and if process name exist
 
 isAppRunning() {
-    #Get title of active window
+    # Get title of active window
     activ_win_title=`xprop -id $activ_win_id | grep "WM_CLASS(STRING)"` # I used WM_NAME(STRING) before, WM_CLASS is more accurate.
     
     if [ $firefox_flash_detection == 1 ]; then
@@ -175,49 +175,49 @@ isAppRunning() {
     
     if [ $html5_detection == 1 ]; then
         if [ "$activ_win_title" = *Chrome* || "$activ_win_title" = *hromium-browser* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]; then
-            #check if firefox or chromium is running.
+            # check if firefox or chromium is running.
             [ `pgrep -lc chrome` -ge 1 || `pgrep -lc firefox` -ge 1 || `pgrep -lc chromium-browser` -ge 1  || `pgrep -lc opera` -ge 1 || `pgrep -lc epiphany` -ge 1 ] && return 1
                 fi
         fi
         
         if [ $chrome_app_detection == 1 ]; then
             if [ ! -z $chrome_app_name && "$activ_win_title" = *$chrome_app_name* ]; then
-                #check if google chrome is runnig in app mode
+                # check if google chrome is runnig in app mode
                 [ `pgrep -lfc "chrome --app"` -ge 1 ] && return 1
             fi
         fi
         
         if [ $mplayer_detection == 1 ]; then
             if [ "$activ_win_title" = *mplayer* || "$activ_win_title" = *MPlayer* ]; then
-                #check if mplayer is running.
+                # check if mplayer is running.
                 [ `prep -lc mplayer` -ge 1 ] && return 1
             fi
         fi
         
         if [ $vlc_detection == 1 ]; then
             if [ "$activ_win_title" = *vlc* ]; then
-                #check if vlc is running.
+                # check if vlc is running.
                 [ `pgrep -lc vlc` -ge 1 ] && return 1
             fi
         fi
         
         if [ $totem_detection == 1 ]; then
             if [ "$activ_win_title" = *totem* ]; then
-                #check if totem is running.
+                # check if totem is running.
                 [ `pgrep -lc totem` -ge 1 ] && return 1
             fi
         fi
         
         if [ $steam_detection == 1 ]; then
             if [ "$activ_win_title" = *steam* ]; then
-                #check if steam is running.
+                # check if steam is running.
                 [ `pgrep -lc steam` -ge 1 ] && return 1
             fi
         fi
         
         if [ $minitube_detection == 1 ]; then
             if [ "$activ_win_title" = *minitube* ]; then
-                #check if minitube is running.
+                # check if minitube is running.
                 [ `pgrep -lc minitube` -ge 1 ] && (log "isAppRunning(): minitube fullscreen detected" && return 1)
             fi
         fi
@@ -229,24 +229,32 @@ delayScreensaver() {
     # reset inactivity time counter so screensaver is not started
     case $screensaver in
         "xscreensaver" )
-            #This tells xscreensaver to pretend that there has just been user activity. This means that if the screensaver is active (the screen is blanked), then this command will cause the screen to un-blank as if there had been keyboard or mouse activity. If the screen is locked, then the password dialog will pop up first, as usual. If the screen is not blanked, then this simulated user activity will re-start the countdown (so, issuing the -deactivate command periodically is one way to prevent the screen from blanking.)
+            # This tells xscreensaver to pretend that there has just been user activity.
+            # This means that if the screensaver is active
+            # (the screen is blanked), then this command will cause the screen
+            # to un-blank as if there had been keyboard or mouse activity.
+            # If the screen is locked, then the password dialog will pop up first,
+            # as usual. If the screen is not blanked, then this simulated user
+            # activity will re-start the countdown (so, issuing the -deactivate
+            # command periodically is one way to prevent the screen from blanking.)
+
             xscreensaver-command -deactivate > /dev/null;;
     "gnome-screensaver" )
-            #new way, first try
+            # new way, first try
             dbus-send --session --dest=org.freedesktop.ScreenSaver --reply-timeout=2000 --type=method_call /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity > /dev/null
-            #old way second try
+            # old way second try
             dbus-send --session --type=method_call --dest=org.gnome.ScreenSaver --reply-timeout=20000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.SimulateUserActivity > /dev/null;;
     "kscreensaver" )
         qdbus org.freedesktop.ScreenSaver /ScreenSaver SimulateUserActivity > /dev/null;;
     "cinnamon-screensaver" )
-        #use standard inhibit message, maybe merge with gnome-screensaver
+        # use standard inhibit message, maybe merge with gnome-screensaver
         dbus-send --session --dest=org.freedesktop.ScreenSaver --reply-timeout=2000 --type=method_call /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity > /dev/null;;
     "xautolock" )
         xautolock -disable
         xautolock -enable;;
     esac
     
-    #Check if DPMS is on. If it is, deactivate and reactivate again. If it is not, do nothing.
+    # Check if DPMS is on. If it is, deactivate and reactivate again. If it is not, do nothing.
     dpmsStatus=`xset -q | grep -ce 'DPMS is Enabled'`
     [ $dpmsStatus == 1 ] && (xset -dpms && xset dpms)
 }
