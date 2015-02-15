@@ -257,6 +257,23 @@ delayScreensaver() {
     [ $dpmsStatus == 1 ] && (xset -dpms && xset dpms)
 }
 
+help() {
+    echo "USAGE:    $ lighsonplus [FLAG1 ARG1] ... [FLAGn ARGn]"
+    echo "FLAGS (ARGUMENTS must be 0 or 1, except stated otherwise):"
+    echo ""
+    echo "  -d,  --delay            Time interval in seconds, default is 50s"
+    echo "  -mp, --mplayer          mplayer detection"
+    echo "  -v,  --vlc              VLC detection"
+    echo "  -t,  --totem            Totem detection"
+    echo "  -ff, --firefox-flash    Firefox flash plugin detection"
+    echo "  -cf, --chromium-flash   Chromium flash plugin detection"
+    echo "  -ca, --chrome-app       Chrome app detection, app name must be passed"
+    echo "  -wf, --webkit-flash     Webkit flash detection"
+    echo "  -h5, --html5           HTML5 detection"
+    echo "  -s,  --steam            Steam detection"
+    echo "  -mt, --minitube         MiniTube detection";;
+}
+
 # check if arguments are valid, default to 50s interval if none is given
 delay=$defaultdelay
 
@@ -279,28 +296,16 @@ while [ ! -z $1 ]; do
             [ ! -z $2 ] && ($chrome_app_detection=$1 && $chrome_app_name="$2") || (echo "Missing argument. Chrome app name expected after \"$1\" flag." && exit 1);;
         "-wf" | "--webkit-flash" )
             [ $2 -eq 1 || $2 -eq 0 ] && $webkit_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
-        "-h" | "--html5" )
+        "-h5" | "--html5" )
             [ $2 -eq 1 || $2 -eq 0 ] && $html5_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-s" | "--steam" )
             [ $2 -eq 1 || $2 -eq 0 ] && $steam_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-mt" | "--minitube" )
             [ $2 -eq 1 || $2 -eq 0 ] && $minitube_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+        "-h" | "--help" )
+            help;;
         * )
-            echo "Invalid argument."
-            echo "USAGE:    $ lighsonplus [FLAG1 ARG1] ... [FLAGn ARGn]"
-            echo "FLAGS (ARGUMENTS must be 0 or 1, except stated otherwise):"
-            ehco ""
-            echo "  -d,  --delay            Time interval in seconds, default is 50s"
-            echo "  -mp, --mplayer          mplayer detection"
-            echo "  -v,  --vlc              VLC detection"
-            echo "  -t,  --totem            Totem detection"
-            echo "  -ff, --firefox-flash    Firefox flash plugin detection"
-            echo "  -cf, --chromium-flash   Chromium flash plugin detection"
-            echo "  -ca, --chrome-app       Chrome app detection, app name must be passed"
-            echo "  -wf, --webkit-flash     Webkit flash detection"
-            echo "  -h,  --html5            HTML5 detection"
-            echo "  -s,  --steam            Steam detection"
-            echo "  -mt, --minitube         MiniTube detection";;
+            echo "Ivalid argument. See -h, --help for more information.";;
     esac
     
     # arguments must be always passed in tuples
