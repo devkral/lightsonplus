@@ -94,9 +94,8 @@ elif [ `pgrep -c gnome-screensave` -ge 1 ] || [ `pgrep -c gnome-shel` -ge 1 ] ;t
     screensaver="gnome-screensaver"
 # make sure that the command exists then execute
 elif [ `which gnome-screensaver-command 2> /dev/null;echo $?` -eq 0 ] &&
-         [ `"$(which gnome-screensaver-command)" -q  | grep -c active` -ge 1 ]; then
+    [ `"$(which gnome-screensaver-command)" -q  | grep -c active` -ge 1 ]; then
     screensaver="gnome-screensaver"
-		
 elif [ `pgrep -c kscreensave` -ge 1 ]; then
     screensaver="kscreensaver"
 elif [ `pgrep -c xautoloc` -ge 1 ]; then
@@ -136,9 +135,7 @@ checkFullscreen() {
         if [[ "$isActivWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]] || [[ "$isTopWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]]; then
             isAppRunning
             var=$?
-            if [[ $var -eq 1 ]]; then
-                delayScreensaver
-            fi
+            [ $var -eq 1 ] && delayScreensaver
         fi
     done
 }
@@ -175,7 +172,7 @@ isAppRunning() {
     fi
     
     if [ $html5_detection == 1 ]; then
-        if [ "$activ_win_title" = *Chrome* || "$activ_win_title" = *hromium-browser* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]; then
+        if [ "$activ_win_title" = *Chrome* || "$activ_win_title" = *chromium-browser* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]; then
             # check if firefox or chromium is running.
             [ `pgrep -c chrome` -ge 1 || `pgrep -c firefox` -ge 1 || `pgrep -c chromium-browser` -ge 1  || `pgrep -c opera` -ge 1 || `pgrep -c epiphany` -ge 1 ] && return 1
                 fi
@@ -184,42 +181,42 @@ isAppRunning() {
         if [ $chrome_app_detection == 1 ]; then
             if [ ! -z $chrome_app_name && "$activ_win_title" = *$chrome_app_name* ]; then
                 # check if google chrome is runnig in app mode
-                [ `pgrep -lfc "chrome --app"` -ge 1 ] && return 1
+                [ `pgrep -c "chrome --app"` -ge 1 ] && return 1
             fi
         fi
         
         if [ $mplayer_detection == 1 ]; then
             if [ "$activ_win_title" = *mplayer* || "$activ_win_title" = *MPlayer* ]; then
                 # check if mplayer is running.
-                [ `prep -lc mplayer` -ge 1 ] && return 1
+                [ `prep -c mplayer` -ge 1 ] && return 1
             fi
         fi
         
         if [ $vlc_detection == 1 ]; then
             if [ "$activ_win_title" = *vlc* ]; then
                 # check if vlc is running.
-                [ `pgrep -lc vlc` -ge 1 ] && return 1
+                [ `pgrep -c vlc` -ge 1 ] && return 1
             fi
         fi
         
         if [ $totem_detection == 1 ]; then
             if [ "$activ_win_title" = *totem* ]; then
                 # check if totem is running.
-                [ `pgrep -lc totem` -ge 1 ] && return 1
+                [ `pgrep -c totem` -ge 1 ] && return 1
             fi
         fi
         
         if [ $steam_detection == 1 ]; then
             if [ "$activ_win_title" = *steam* ]; then
                 # check if steam is running.
-                [ `pgrep -lc steam` -ge 1 ] && return 1
+                [ `pgrep -c steam` -ge 1 ] && return 1
             fi
         fi
         
         if [ $minitube_detection == 1 ]; then
             if [ "$activ_win_title" = *minitube* ]; then
                 # check if minitube is running.
-                [ `pgrep -lc minitube` -ge 1 ] && (log "isAppRunning(): minitube fullscreen detected" && return 1)
+                [ `pgrep -c minitube` -ge 1 ] && (log "isAppRunning(): minitube fullscreen detected" && return 1)
             fi
         fi
         
@@ -256,22 +253,59 @@ delayScreensaver() {
     esac
     
     # Check if DPMS is on. If it is, deactivate and reactivate again. If it is not, do nothing.
-    dpmsStatus=`xset -q | grep -ce 'DPMS is Enabled'`
+    dpmsStatus=`xset -q | grep -c 'DPMS is Enabled'`
     [ $dpmsStatus == 1 ] && (xset -dpms && xset dpms)
 }
 
-# check if argument is valid, default to 50s interval if none is given
-case $1 in
-    "" )
-        delay=$defaultdelay;;
-    *[^0-9]* )
-        echo "The Argument \"$1\" is not valid, not an integer"
-        echo "Please use the time in seconds you want the checks to repeat."
-        echo "You want it to be ~10 seconds less than the time it takes your screensaver or DPMS to activate"
-        exit 1;;
-    * )
-        delay=$1;;
-esac
+# check if arguments are valid, default to 50s interval if none is given
+delay=$defaultdelay
+
+while [ ! -z $1 ]; do
+    case $1 in
+       "-d" | "--delay" )
+            [ "$2" -eq "$2" ] 2>/dev/null && $delay = $2 || (echo "Invalid argument. Time in seconds expected after \"$1\" flag." && exit 1);;
+       "-mp" | "--mplayer" )
+            [ $2 -eq 1 || $2 -eq 0 ] && $mplayer_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+        "-v" | "--vlc" )
+            [ $2 -eq 1 || $2 -eq 0 ] && $vlc_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+        "-t" | "--totem" )
+            [ $2 -eq 1 || $2 -eq 0 ] && $totem_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+        "-ff" | "--firefox-flash" )
+            [ $2 -eq 1 || $2 -eq 0 ] && $firefox_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+        "-cf" | "--chromium-flash" )
+            [ $2 -eq 1 || $2 -eq 0 ] && $chromium_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+        # passing an app name suffices to activate chrome app detection
+        "-ca" | "--chrome-app" )
+            [ ! -z $2 ] && ($chrome_app_detection=$1 && $chrome_app_name="$2") || (echo "Missing argument. Chrome app name expected after \"$1\" flag." && exit 1);;
+        "-wf" | "--webkit-flash" )
+            [ $2 -eq 1 || $2 -eq 0 ] && $webkit_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+        "-h" | "--html5" )
+            [ $2 -eq 1 || $2 -eq 0 ] && $html5_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+        "-s" | "--steam" )
+            [ $2 -eq 1 || $2 -eq 0 ] && $steam_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+        "-mt" | "--minitube" )
+            [ $2 -eq 1 || $2 -eq 0 ] && $minitube_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+        * )
+            echo "Invalid argument."
+            echo "USAGE:    $ lighsonplus [FLAG1 ARG1] ... [FLAGn ARGn]"
+            echo "FLAGS (ARGUMENTS must be 0 or 1, except stated otherwise):"
+            ehco ""
+            echo "  -d,  --delay            Time interval in seconds, default is 50s"
+            echo "  -mp, --mplayer          mplayer detection"
+            echo "  -v,  --vlc              VLC detection"
+            echo "  -t,  --totem            Totem detection"
+            echo "  -ff, --firefox-flash    Firefox flash plugin detection"
+            echo "  -cf, --chromium-flash   Chromium flash plugin detection"
+            echo "  -ca, --chrome-app       Chrome app detection, app name must be passed"
+            echo "  -wf, --webkit-flash     Webkit flash detection"
+            echo "  -h,  --html5            HTML5 detection"
+            echo "  -s,  --steam            Steam detection"
+            echo "  -mt, --minitube         MiniTube detection";;
+    esac
+    
+    # arguments must be always passed in tuples
+    shift 2
+done
 
 echo "start lightsOn mainloop"
 while true; do
