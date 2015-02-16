@@ -172,7 +172,8 @@ isAppRunning() {
     fi
     
     if [ $html5_detection == 1 ]; then
-        if [ "$activ_win_title" = *Chrome* || "$activ_win_title" = *chromium-browser* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]; then
+        # chromium changed spelling  (c/C possible)
+        if [ "$activ_win_title" = *Chrome* || "$activ_win_title" = *hromium-browser* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]; then
             # check if firefox or chromium is running.
             [ `pgrep -c chrome` -ge 1 || `pgrep -c firefox` -ge 1 || `pgrep -c chromium-browser` -ge 1  || `pgrep -c opera` -ge 1 || `pgrep -c epiphany` -ge 1 ] && return 1
                 fi
@@ -181,7 +182,7 @@ isAppRunning() {
         if [ $chrome_app_detection == 1 ]; then
             if [ ! -z $chrome_app_name && "$activ_win_title" = *$chrome_app_name* ]; then
                 # check if google chrome is runnig in app mode
-                [ `pgrep -c "chrome --app"` -ge 1 ] && return 1
+                [ `pgrep -fc "chrome --app"` -ge 1 ] && return 1
             fi
         fi
         
