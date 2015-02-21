@@ -272,7 +272,7 @@ help() {
     echo "  -wf, --webkit-flash     Webkit flash detection"
     echo "  -h5, --html5           HTML5 detection"
     echo "  -s,  --steam            Steam detection"
-    echo "  -mt, --minitube         MiniTube detection";;
+    echo "  -mt, --minitube         MiniTube detection"
 }
 
 # check if arguments are valid, default to 50s interval if none is given
@@ -304,9 +304,9 @@ while [ ! -z $1 ]; do
         "-mt" | "--minitube" )
             [ $2 -eq 1 || $2 -eq 0 ] && $minitube_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-h" | "--help" )
-            help;;
+            help && exit 0;;
         * )
-            echo "Ivalid argument. See -h, --help for more information.";;
+            echo "Ivalid argument. See -h, --help for more information." && exit 1;;
     esac
     
     # arguments must be always passed in tuples
