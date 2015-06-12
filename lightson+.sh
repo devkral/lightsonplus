@@ -96,6 +96,8 @@ elif [ `pgrep -c gnome-screensave` -ge 1 ] || [ `pgrep -c gnome-shel` -ge 1 ] ;t
 elif [ `which gnome-screensaver-command 2> /dev/null;echo $?` -eq 0 ] &&
     [ `"$(which gnome-screensaver-command)" -q  | grep -c active` -ge 1 ]; then
     screensaver="gnome-screensaver"
+elif [ `pgrep -c mate-screensave` -ge 1 ]; then
+    screensaver="mate-screensaver"
 elif [ `pgrep -c kscreensave` -ge 1 ]; then
     screensaver="kscreensaver"
 elif [ `pgrep -c xautoloc` -ge 1 ]; then
@@ -173,9 +175,9 @@ isAppRunning() {
     
     if [ $html5_detection == 1 ]; then
         # chromium changed spelling  (c/C possible)
-        if [ "$activ_win_title" = *Chrome* || "$activ_win_title" = *hromium* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]; then
+        if [[ "$activ_win_title" = *Chrome* || "$activ_win_title" = *hromium* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]]; then
             # check if firefox or chromium is running.
-            [ `pgrep -c chrome` -ge 1 || `pgrep -c firefox` -ge 1 || `pgrep -c chromium` -ge 1  || `pgrep -c opera` -ge 1 || `pgrep -c epiphany` -ge 1 ] && return 1
+            [[ `pgrep -c chrome` -ge 1 || `pgrep -c firefox` -ge 1 || `pgrep -c chromium` -ge 1  || `pgrep -c opera` -ge 1 || `pgrep -c epiphany` -ge 1 ]] && return 1
                 fi
         fi
         
@@ -187,7 +189,7 @@ isAppRunning() {
         fi
         
         if [ $mplayer_detection == 1 ]; then
-            if [ "$activ_win_title" = *mplayer* || "$activ_win_title" = *MPlayer* ]; then
+            if [[ "$activ_win_title" = *mplayer* || "$activ_win_title" = *MPlayer* ]]; then
                 # check if mplayer is running.
                 [ `prep -c mplayer` -ge 1 ] && return 1
             fi
@@ -243,6 +245,8 @@ delayScreensaver() {
             dbus-send --session --dest=org.freedesktop.ScreenSaver --reply-timeout=2000 --type=method_call /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity > /dev/null
             # old way second try
             dbus-send --session --type=method_call --dest=org.gnome.ScreenSaver --reply-timeout=20000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.SimulateUserActivity > /dev/null;;
+    "mate-screensaver" )
+            mate-screensaver-command --poke > /dev/null;;
     "kscreensaver" )
         qdbus org.freedesktop.ScreenSaver /ScreenSaver SimulateUserActivity > /dev/null;;
     "cinnamon-screensaver" )
@@ -270,7 +274,7 @@ help() {
     echo "  -cf, --chromium-flash   Chromium flash plugin detection"
     echo "  -ca, --chrome-app       Chrome app detection, app name must be passed"
     echo "  -wf, --webkit-flash     Webkit flash detection"
-    echo "  -h5, --html5           HTML5 detection"
+    echo "  -h5, --html5            HTML5 detection"
     echo "  -s,  --steam            Steam detection"
     echo "  -mt, --minitube         MiniTube detection"
 }
@@ -281,28 +285,28 @@ delay=$defaultdelay
 while [ ! -z $1 ]; do
     case $1 in
        "-d" | "--delay" )
-            [ "$2" -eq "$2" ] 2>/dev/null && $delay = $2 || (echo "Invalid argument. Time in seconds expected after \"$1\" flag." && exit 1);;
+            [[ $2 = *[^0-9]* ]] && echo "Invalid argument. Time in seconds expected after \"$1\" flag. Got \"$2\" " && exit 1 || delay=$2;;
        "-mp" | "--mplayer" )
-            [ $2 -eq 1 || $2 -eq 0 ] && $mplayer_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+            [[ $2 -eq 1 || $2 -eq 0 ]] && mplayer_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-v" | "--vlc" )
-            [ $2 -eq 1 || $2 -eq 0 ] && $vlc_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+            [[ $2 -eq 1 || $2 -eq 0 ]] && vlc_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-t" | "--totem" )
-            [ $2 -eq 1 || $2 -eq 0 ] && $totem_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+            [[ $2 -eq 1 || $2 -eq 0 ]] && totem_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-ff" | "--firefox-flash" )
-            [ $2 -eq 1 || $2 -eq 0 ] && $firefox_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+            [[ $2 -eq 1 || $2 -eq 0 ]] && firefox_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-cf" | "--chromium-flash" )
-            [ $2 -eq 1 || $2 -eq 0 ] && $chromium_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+            [[ $2 -eq 1 || $2 -eq 0 ]] && chromium_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         # passing an app name suffices to activate chrome app detection
         "-ca" | "--chrome-app" )
-            [ ! -z $2 ] && ($chrome_app_detection=$1 && $chrome_app_name="$2") || (echo "Missing argument. Chrome app name expected after \"$1\" flag." && exit 1);;
+            [ ! -z $2 ] && (chrome_app_detection=$1 && chrome_app_name="$2") || (echo "Missing argument. Chrome app name expected after \"$1\" flag." && exit 1);;
         "-wf" | "--webkit-flash" )
-            [ $2 -eq 1 || $2 -eq 0 ] && $webkit_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+            [[ $2 -eq 1 || $2 -eq 0 ]] && webkit_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-h5" | "--html5" )
-            [ $2 -eq 1 || $2 -eq 0 ] && $html5_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+            [[ $2 -eq 1 || $2 -eq 0 ]] && html5_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-s" | "--steam" )
-            [ $2 -eq 1 || $2 -eq 0 ] && $steam_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+            [[ $2 -eq 1 || $2 -eq 0 ]] && steam_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-mt" | "--minitube" )
-            [ $2 -eq 1 || $2 -eq 0 ] && $minitube_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+            [[ $2 -eq 1 || $2 -eq 0 ]] && minitube_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-h" | "--help" )
             help && exit 0;;
         * )
