@@ -173,9 +173,9 @@ isAppRunning() {
     
     if [ $html5_detection == 1 ]; then
         # chromium changed spelling  (c/C possible)
-        if [ "$activ_win_title" = *Chrome* || "$activ_win_title" = *hromium-browser* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]; then
+        if [ "$activ_win_title" = *Chrome* || "$activ_win_title" = *hromium* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]; then
             # check if firefox or chromium is running.
-            [ `pgrep -c chrome` -ge 1 || `pgrep -c firefox` -ge 1 || `pgrep -c chromium-browser` -ge 1  || `pgrep -c opera` -ge 1 || `pgrep -c epiphany` -ge 1 ] && return 1
+            [ `pgrep -c chrome` -ge 1 || `pgrep -c firefox` -ge 1 || `pgrep -c chromium` -ge 1  || `pgrep -c opera` -ge 1 || `pgrep -c epiphany` -ge 1 ] && return 1
                 fi
         fi
         
