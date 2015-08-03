@@ -319,7 +319,7 @@ done
 
 echo "start lightsOn mainloop"
 while true; do
-    [ -f "$inhibitfile" ] && dealyScreensaver || checkFullscreen
+    [ -f "$inhibitfile" ] && delayScreensaver || checkFullscreen
     sleep $delay
 done
 
