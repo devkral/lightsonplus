@@ -196,7 +196,7 @@ isAppRunning() {
         fi
         
         if [ $vlc_detection == 1 ]; then
-            if [ "$activ_win_title" = *vlc* ]; then
+            if [ "$activ_win_title" = *vlc* || "$activ_win_title" = *VLC* ]; then
                 # check if vlc is running.
                 [ `pgrep -c vlc` -ge 1 ] && return 1
             fi
