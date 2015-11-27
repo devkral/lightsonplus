@@ -35,8 +35,10 @@ webkit_flash_detection=1 # untested
 html5_detection=1 # actually check whether your browser is toggled fullscreen, so simply surfing in fullscreen triggers screensaver inhibition as well (work in progress)
 steam_detection=0 # untested
 minitube_detection=0  # untested
+load_detection=0  # untested
 
 defaultdelay=50
+minload="1.5"
 
 # realdisp
 realdisp=`echo "$DISPLAY" | cut -d. -f1`
@@ -169,8 +171,12 @@ isAppRunning() {
     if [ $webkit_flash_detection == 1 ]; then
         if [ "$activ_win_title" = *WebKitPluginProcess* ]; then
             # Check if WebKit Flash process is running
-            [ `pgrep -c ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && (log "isAppRunning(): webkit flash fullscreen detected" && return 1)
+            [ `pgrep -c ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 1
         fi
+    fi
+    
+    if [ $load_detection == 1 ]; then
+        [ "$(echo "$(sed 's/ .*$//' /proc/loadavg) > $minload" | bc -q)" -eq "1" ] && return 1
     fi
     
     if [ $html5_detection == 1 ]; then
@@ -178,52 +184,52 @@ isAppRunning() {
         if [[ "$activ_win_title" = *Chrome* || "$activ_win_title" = *hromium* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]]; then
             # check if firefox or chromium is running.
             [[ `pgrep -c chrome` -ge 1 || `pgrep -c firefox` -ge 1 || `pgrep -c chromium` -ge 1  || `pgrep -c opera` -ge 1 || `pgrep -c epiphany` -ge 1 ]] && return 1
-                fi
         fi
-        
-        if [ $chrome_app_detection == 1 ]; then
-            if [ ! -z $chrome_app_name && "$activ_win_title" = *$chrome_app_name* ]; then
-                # check if google chrome is runnig in app mode
-                [ `pgrep -fc "chrome --app"` -ge 1 ] && return 1
-            fi
+    fi
+    
+    if [ $chrome_app_detection == 1 ]; then
+        if [ ! -z $chrome_app_name && "$activ_win_title" = *$chrome_app_name* ]; then
+            # check if google chrome is runnig in app mode
+            [ `pgrep -fc "chrome --app"` -ge 1 ] && return 1
         fi
+    fi
         
-        if [ $mplayer_detection == 1 ]; then
-            if [[ "$activ_win_title" = *mplayer* || "$activ_win_title" = *MPlayer* ]]; then
-                # check if mplayer is running.
-                [ `prep -c mplayer` -ge 1 ] && return 1
-            fi
+    if [ $mplayer_detection == 1 ]; then
+        if [[ "$activ_win_title" = *mplayer* || "$activ_win_title" = *MPlayer* ]]; then
+            # check if mplayer is running.
+            [ `prep -c mplayer` -ge 1 ] && return 1
         fi
+    fi
         
-        if [ $vlc_detection == 1 ]; then
-            if [ "$activ_win_title" = *vlc* || "$activ_win_title" = *VLC* ]; then
-                # check if vlc is running.
-                [ `pgrep -c vlc` -ge 1 ] && return 1
-            fi
+    if [ $vlc_detection == 1 ]; then
+        if [ "$activ_win_title" = *vlc* || "$activ_win_title" = *VLC* ]; then
+            # check if vlc is running.
+            [ `pgrep -c vlc` -ge 1 ] && return 1
         fi
+    fi
         
-        if [ $totem_detection == 1 ]; then
-            if [ "$activ_win_title" = *totem* ]; then
-                # check if totem is running.
-                [ `pgrep -c totem` -ge 1 ] && return 1
-            fi
+    if [ $totem_detection == 1 ]; then
+        if [ "$activ_win_title" = *totem* ]; then
+            # check if totem is running.
+            [ `pgrep -c totem` -ge 1 ] && return 1
         fi
-        
-        if [ $steam_detection == 1 ]; then
-            if [ "$activ_win_title" = *steam* ]; then
-                # check if steam is running.
-                [ `pgrep -c steam` -ge 1 ] && return 1
-            fi
+    fi
+    
+    if [ $steam_detection == 1 ]; then
+        if [ "$activ_win_title" = *steam* ]; then
+            # check if steam is running.
+            [ `pgrep -c steam` -ge 1 ] && return 1
         fi
-        
-        if [ $minitube_detection == 1 ]; then
-            if [ "$activ_win_title" = *minitube* ]; then
-                # check if minitube is running.
-                [ `pgrep -c minitube` -ge 1 ] && (log "isAppRunning(): minitube fullscreen detected" && return 1)
-            fi
+    fi
+    
+    if [ $minitube_detection == 1 ]; then
+        if [ "$activ_win_title" = *minitube* ]; then
+            # check if minitube is running.
+            [ `pgrep -c minitube` -ge 1 ] && (log "isAppRunning(): minitube fullscreen detected" && return 1)
         fi
+    fi
         
-        return 0
+    return 0
 }
 
 delayScreensaver() {
@@ -242,7 +248,7 @@ delayScreensaver() {
             xscreensaver-command -deactivate > /dev/null;;
     "gnome-screensaver" )
             # new way, first try
-            dbus-send --session --dest=org.freedesktop.ScreenSaver --reply-timeout=2000 --type=method_call /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity > /dev/null
+            dbus-send --session --type=method_call --dest=org.freedesktop.ScreenSaver --reply-timeout=2000 /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity > /dev/null
             # old way second try
             dbus-send --session --type=method_call --dest=org.gnome.ScreenSaver --reply-timeout=20000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.SimulateUserActivity > /dev/null;;
     "mate-screensaver" )
@@ -277,6 +283,8 @@ help() {
     echo "  -h5, --html5            HTML5 detection"
     echo "  -s,  --steam            Steam detection"
     echo "  -mt, --minitube         MiniTube detection"
+    echo "  -ld, --load             Load detection"
+    echo "  -minld, --minload             Load detection"
 }
 
 # check if arguments are valid, default to 50s interval if none is given
@@ -307,6 +315,10 @@ while [ ! -z $1 ]; do
             [[ $2 -eq 1 || $2 -eq 0 ]] && steam_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-mt" | "--minitube" )
             [[ $2 -eq 1 || $2 -eq 0 ]] && minitube_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+        "-ld" | "--load" )
+            [[ $2 -eq 1 || $2 -eq 0 ]] && load_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+        "-minld" | "--minload" )
+            [[ "$(echo "$(sed 's/ .*$//' /proc/loadavg) > 0" | bc -q)" -eq 1 ]] && minload=$2 || (echo "Invalid argument. >0 expected after \"$1\" flag." && exit 1);;
         "-h" | "--help" )
             help && exit 0;;
         * )
