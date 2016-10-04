@@ -94,10 +94,6 @@ if [ `pgrep -c xscreensave` -ge 1 ]; then
     screensaver="xscreensaver"
 elif [ `pgrep -c gnome-screensave` -ge 1 ] || [ `pgrep -c gnome-shel` -ge 1 ] ;then
     screensaver="gnome-screensaver"
-# make sure that the command exists then execute
-elif [ `which gnome-screensaver-command 2> /dev/null;echo $?` -eq 0 ] &&
-    [ `"$(which gnome-screensaver-command)" -q  | grep -c active` -ge 1 ]; then
-    screensaver="gnome-screensaver"
 elif [ `pgrep -c mate-screensave` -ge 1 ]; then
     screensaver="mate-screensaver"
 elif [ `pgrep -c kscreensave` -ge 1 ]; then
