@@ -93,15 +93,17 @@ done< <(xvinfo | sed -n 's/^screen #\([0-9]\+\)$/\1/p')
 if [ `pgrep -c xscreensave` -ge 1 ]; then
     screensaver="xscreensaver"
 elif [ `pgrep -c gnome-screensave` -ge 1 ] || [ `pgrep -c gnome-shel` -ge 1 ] ;then
-    screensaver="gnome-screensaver"
+    screensaver="freedesktop-screensaver"
 elif [ `pgrep -c mate-screensave` -ge 1 ]; then
     screensaver="mate-screensaver"
 elif [ `pgrep -c kscreensave` -ge 1 ]; then
-    screensaver="kscreensaver"
+    screensaver="freedesktop-screensaver"
 elif [ `pgrep -c xautoloc` -ge 1 ]; then
     screensaver="xautolock"
 elif [ `pgrep -c cinnamon-screen` -ge 1 ]; then
-    screensaver="cinnamon-screensaver"
+    screensaver="freedesktop-screensaver"
+elif [ `dbus-send --session --print-reply=literal --dest=org.freedesktop.ScreenSaver --type=method_call /ScreenSaver org.freedesktop.ScreenSaver.GetActive 2> /dev/null` = "true" ]; then
+    screensaver="freedesktop-screensaver"
 else
     screensaver=""
     echo "No screensaver detected"
@@ -242,21 +244,13 @@ delayScreensaver() {
             # command periodically is one way to prevent the screen from blanking.)
 
             xscreensaver-command -deactivate > /dev/null;;
-    "gnome-screensaver" )
-            # new way, first try
-            dbus-send --session --type=method_call --dest=org.freedesktop.ScreenSaver --reply-timeout=2000 /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity > /dev/null
-            # old way second try
-            dbus-send --session --type=method_call --dest=org.gnome.ScreenSaver --reply-timeout=20000 /org/gnome/ScreenSaver org.gnome.ScreenSaver.SimulateUserActivity > /dev/null;;
     "mate-screensaver" )
             mate-screensaver-command --poke > /dev/null;;
-    "kscreensaver" )
-        qdbus org.freedesktop.ScreenSaver /ScreenSaver SimulateUserActivity > /dev/null;;
-    "cinnamon-screensaver" )
-        # use standard inhibit message, maybe merge with gnome-screensaver
-        dbus-send --session --dest=org.freedesktop.ScreenSaver --reply-timeout=2000 --type=method_call /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity > /dev/null;;
     "xautolock" )
         xautolock -disable
         xautolock -enable;;
+    "freedesktop-screensaver" )
+        dbus-send --session --dest=org.freedesktop.ScreenSaver --reply-timeout=2000 --type=method_call /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity > /dev/null;;
     esac
     
     # Check if DPMS is on. If it is, deactivate and reactivate again. If it is not, do nothing.
