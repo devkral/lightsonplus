@@ -89,24 +89,22 @@ while read id; do
 done< <(xvinfo | sed -n 's/^screen #\([0-9]\+\)$/\1/p')
 
 # Detect screensaver been used
-# pgrep cuts off last character
-if [ `pgrep -c xscreensave` -ge 1 ]; then
-    screensaver="xscreensaver"
-elif [ `pgrep -c gnome-screensave` -ge 1 ] || [ `pgrep -c gnome-shel` -ge 1 ] ;then
+# pgrep cuts off last character (not anymore)
+if [ `dbus-send --session --print-reply=literal --type=method_call --dest=org.freedesktop.ScreenSaver /ScreenSaver/ org.freedesktop.ScreenSaver.GetActive &> /dev/null; echo $?` -eq 0 ]; then
     screensaver="freedesktop-screensaver"
+#elif [ `pgrep -c gnome-shel` -ge 1 ] ;then
+#    screensaver="xdofallback"
+elif [ `pgrep -c xscreensave` -ge 1 ]; then
+    screensaver="xscreensaver"
 elif [ `pgrep -c mate-screensave` -ge 1 ]; then
     screensaver="mate-screensaver"
-elif [ `pgrep -c kscreensave` -ge 1 ]; then
-    screensaver="freedesktop-screensaver"
 elif [ `pgrep -c xautoloc` -ge 1 ]; then
     screensaver="xautolock"
-elif [ `pgrep -c cinnamon-screen` -ge 1 ]; then
-    screensaver="freedesktop-screensaver"
-elif [ `dbus-send --session --print-reply=literal --dest=org.freedesktop.ScreenSaver --type=method_call /ScreenSaver org.freedesktop.ScreenSaver.GetActive 2> /dev/null` = "true" ]; then
-    screensaver="freedesktop-screensaver"
+elif [ -e "/usr/bin/xdotool" ]; then
+    screensaver="xdofallback"
 else
     screensaver=""
-    echo "No screensaver detected"
+    echo "No screensaver detected (and no xdotool)"
     exit 1
 fi
 
@@ -249,8 +247,11 @@ delayScreensaver() {
     "xautolock" )
         xautolock -disable
         xautolock -enable;;
+    "xdofallback" )
+        xdotool key shift
+        ;;
     "freedesktop-screensaver" )
-        dbus-send --session --dest=org.freedesktop.ScreenSaver --reply-timeout=2000 --type=method_call /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity > /dev/null;;
+        dbus-send --session --reply-timeout=2000 --type=method_call --dest=org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity;;
     esac
     
     # Check if DPMS is on. If it is, deactivate and reactivate again. If it is not, do nothing.
