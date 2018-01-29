@@ -121,12 +121,12 @@ checkFullscreen() {
         top_win_id=${top_win_id:0:9} # eliminate potentially trailing spaces
         
         # Check if Active Window (the foremost window) is in fullscreen state
-        if [ ${#activ_win_id} -eq 9 ]; then
+        if [ ${#activ_win_id} -ge 3 ]; then
             isActivWinFullscreen=`DISPLAY=$realdisp.${display} xprop -id $activ_win_id | grep _NET_WM_STATE_FULLSCREEN`
         else
             isActiveWinFullscreen=""
         fi
-        if [ ${#top_win_id} -eq 9 ]; then
+        if [ ${#top_win_id} -ge 3 ]; then
             isTopWinFullscreen=`DISPLAY=$realdisp.${display} xprop -id $top_win_id | grep _NET_WM_STATE_FULLSCREEN`
         else
             isTopWinFullscreen=""
