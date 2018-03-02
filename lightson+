@@ -16,7 +16,7 @@
 # One of {x, k, gnome-}screensaver must be installed.
 
 # HOW TO USE: 
-# "./lightson+.sh 120 &" will Check every 120 seconds if Mplayer,
+# "./lightson+.sh -d 120 &" will Check every 120 seconds if Mplayer,
 # VLC, Firefox or Chromium are fullscreen and delay screensaver and Power Management if so.
 # You want the number of seconds to be ~10 seconds less than the time it takes
 # your screensaver or Power Management to activate.
@@ -313,7 +313,7 @@ while [ ! -z $1 ]; do
         "-h" | "--help" )
             help && exit 0;;
         * )
-            echo "Ivalid argument. See -h, --help for more information." && exit 1;;
+            echo "Invalid argument. See -h, --help for more information." && exit 1;;
     esac
     
     # arguments must be always passed in tuples
