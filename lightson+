@@ -136,12 +136,11 @@ checkFullscreen() {
 }
 
 # check if active window is mplayer, vlc or firefox
-# TODO only window name in the variable active_win_id, not whole line. 
 # Then change IFs to detect more specifically the apps "<vlc>" and if process name exist
 
 isAppRunning() {
     # Get title of active window
-    active_win_title=`xprop -id $active_win_id | grep "WM_CLASS(STRING)"` # I used WM_NAME(STRING) before, WM_CLASS is more accurate.
+    active_win_title=`xprop -id $active_win_id | grep "WM_CLASS(STRING)" | sed 's/^.*", //;s/"//g'`
     
     if [ $firefox_flash_detection == 1 ]; then
         if [[ "$active_win_title" = *unknown* || "$active_win_title" = *plugin-container* ]]; then
