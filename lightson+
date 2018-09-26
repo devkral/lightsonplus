@@ -251,7 +251,7 @@ checkBool() {
 while [ ! -z $1 ]; do
     case $1 in
        "-d" | "--delay" )
-            [[ $2 = *[^0-9]* ]] && die "Invalid argument. Time in minutes expected after \"$1\" flag. Got \"$2\" " || delay=$2;;
+            [[ -z "$2" || "$2" = *[^0-9]* ]] && die "Invalid argument. Time in minutes expected after \"$1\" flag. Got \"$2\"" || delay=$2;;
         "-ca" | "--chrome-app" )
             [ -n "$2" ] && chrome_app_name="$2" || die "Missing argument. Chrome app name expected after \"$1\" flag.";;
         "-la" | "--minload" )
