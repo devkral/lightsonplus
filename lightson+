@@ -143,59 +143,59 @@ isAppRunning() {
     
     case "$active_win_title" in
     *[Cc]hromium*)
-        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chromium --type=ppapi"` -ge 1 ] && return 1
-        [ "$html5_detection" = 1 ] && [ `pgrep -c chromium` -ge 1 ] && checkAudio "chromium" && return 1
+        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chromium --type=ppapi"` -ge 1 ] && return 0
+        [ "$html5_detection" = 1 ] && [ `pgrep -c chromium` -ge 1 ] && checkAudio "chromium" && return 0
         ;;
     *[Cc]hrome*)
-        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chrome --type=ppapi"` -ge 1 ] && return 1
-        [ "$html5_detection" = 1 ] && [ `pgrep -c chrome` -ge 1 ] && checkAudio "chrome" && return 1
+        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chrome --type=ppapi"` -ge 1 ] && return 0
+        [ "$html5_detection" = 1 ] && [ `pgrep -c chrome` -ge 1 ] && checkAudio "chrome" && return 0
         ;;
     *Firefox*)
-        [ "$html5_detection" = 1 ] && [ `pgrep -c firefox` -ge 1 ] && checkAudio "firefox" && return 1
+        [ "$html5_detection" = 1 ] && [ `pgrep -c firefox` -ge 1 ] && checkAudio "firefox" && return 0
         ;;
     *opera*)
-        [ "$html5_detection" = 1 ] && [ `pgrep -c opera` -ge 1 ] && checkAudio "opera" && return 1
+        [ "$html5_detection" = 1 ] && [ `pgrep -c opera` -ge 1 ] && checkAudio "opera" && return 0
         ;;
     *epiphany*)
-        [ "$html5_detection" = 1 ] && [ `pgrep -c epiphany` -ge 1 ] && checkAudio "epiphany" && return 1
+        [ "$html5_detection" = 1 ] && [ `pgrep -c epiphany` -ge 1 ] && checkAudio "epiphany" && return 0
         ;;
     *unknown*|*plugin-container*)
-        [ "$firefox_flash_detection" = 1 ] && [ `pgrep -c plugin-container` -ge 1 ] && return 1
+        [ "$firefox_flash_detection" = 1 ] && [ `pgrep -c plugin-container` -ge 1 ] && return 0
         ;;
     *WebKitPluginProcess*)
-        [ "$webkit_flash_detection" = 1 ] && [ `pgrep -fc ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 1
+        [ "$webkit_flash_detection" = 1 ] && [ `pgrep -fc ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 0
         ;;
     *MPlayer|mplayer*)
-        [ "$mplayer_detection" = 1 ] && [ `pgrep -c mplayer` -ge 1 ] && checkAudio mplayer && return 1
+        [ "$mplayer_detection" = 1 ] && [ `pgrep -c mplayer` -ge 1 ] && checkAudio mplayer && return 0
         ;;
     *vlc*|*VLC*)
-        [ $vlc_detection = 1 ] && [ `pgrep -c vlc` -ge 1 ] && checkAudio vlc && return 1
+        [ $vlc_detection = 1 ] && [ `pgrep -c vlc` -ge 1 ] && checkAudio vlc && return 0
         ;;
     *totem*)
-        [ $totem_detection = 1 ] && [ `pgrep -c totem` -ge 1 ] && checkAudio totem && return 1
+        [ $totem_detection = 1 ] && [ `pgrep -c totem` -ge 1 ] && checkAudio totem && return 0
         ;;
     *steam*)
-        [ $steam_detection = 1 ] && [ `pgrep -c steam` -ge 1 ] && return 1
+        [ $steam_detection = 1 ] && [ `pgrep -c steam` -ge 1 ] && return 0
         ;;
     *minitube*)
-        [ $minitube_detection = 1 ] && [ `pgrep -c minitube` -ge 1 ] && return 1
+        [ $minitube_detection = 1 ] && [ `pgrep -c minitube` -ge 1 ] && return 0
         ;;
     *)
         if [ -n "$chrome_app_name" ]; then
             # Check if google chrome is running in app mode
-            [[ "$active_win_title" == *$chrome_app_name* ]] && [ `pgrep -fc "chrome --app"` -ge 1 ] && return 1
+            [[ "$active_win_title" == *$chrome_app_name* ]] && [ `pgrep -fc "chrome --app"` -ge 1 ] && return 0
         fi
         ;;
     esac
 
-    [ -n "$minload" ] && [ "$(echo "$(sed 's/ .*$//' /proc/loadavg) > $minload" | bc -q)" -eq "1" ] && return 1
+    [ -n "$minload" ] && [ "$(echo "$(sed 's/ .*$//' /proc/loadavg) > $minload" | bc -q)" -eq "1" ] && return 0
 
     false
 }
 
 checkAudio() {
     # Check if application is streaming sound to PulseAudio
-	[ $audio_detection = 0 ] && return 1
+	[ $audio_detection = 0 ] && return 0
 	pacmd list-sink-inputs | grep -Eiq "application.name = .*$1.*"
 }
 
