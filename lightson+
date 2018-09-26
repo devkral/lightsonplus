@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # lightson+
 
+# Copyright (c) 2018 spinal.by at gmail com
 # Copyright (c) 2014 devkral at web de
 # url: https://github.com/devkral/lightsonplus
 
@@ -28,10 +29,10 @@ totem_detection=1
 firefox_flash_detection=1
 chromium_flash_detection=1
 #chrome_app_name="Netflix"
-webkit_flash_detection=1 # untested
-html5_detection=1 # actually check whether your browser is toggled fullscreen, so simply surfing in fullscreen triggers screensaver inhibition as well (work in progress)
-steam_detection=0 # untested
-minitube_detection=0  # untested
+webkit_flash_detection=1
+html5_detection=1
+steam_detection=0
+minitube_detection=0
 audio_detection=0
 #minload=1.5
 delay=1
@@ -48,7 +49,6 @@ die() {
     exit 1
 }
 
-# pidlocking
 pidcreate() {
     # just one instance can run simultaneously
     if [ ! -e "$pidfile" ]; then
@@ -80,13 +80,13 @@ pidremove() {
 pidcreate
 trap "pidremove" EXIT
 
-# enumerate all the attached screens
+# Enumerate all the attached screens
 displays=""
 while read id; do
     displays="$displays $id"
 done< <(xvinfo | sed -n 's/^screen #\([0-9]\+\)$/\1/p')
 
-# Detect screensaver been used
+# Detect screensaver being used
 if [ `dbus-send --session --print-reply=literal --type=method_call --dest=org.freedesktop.ScreenSaver /ScreenSaver/ org.freedesktop.ScreenSaver.GetActive &> /dev/null; echo $?` -eq 0 ]; then
     screensaver="freedesktop-screensaver"
 #elif [ `pgrep -c gnome-shell` -ge 1 ] ;then
@@ -134,7 +134,7 @@ checkFullscreen() {
     done
 }
 
-# check if active window is mplayer, vlc or firefox
+# Check if active window is mplayer, vlc or firefox
 # Then change IFs to detect more specifically the apps "<vlc>" and if process name exist
 
 isAppRunning() {
@@ -200,18 +200,9 @@ checkAudio() {
 }
 
 delayScreensaver() {
-    # reset inactivity time counter so screensaver is not started
+    # Reset inactivity time counter so screensaver is not started
     case $screensaver in
     "xscreensaver" )
-        # This tells xscreensaver to pretend that there has just been user activity.
-        # This means that if the screensaver is active
-        # (the screen is blanked), then this command will cause the screen
-        # to un-blank as if there had been keyboard or mouse activity.
-        # If the screen is locked, then the password dialog will pop up first,
-        # as usual. If the screen is not blanked, then this simulated user
-        # activity will re-start the countdown (so, issuing the -deactivate
-        # command periodically is one way to prevent the screen from blanking.)
-
         xscreensaver-command -deactivate > /dev/null;;
     "mate-screensaver" )
             mate-screensaver-command --poke > /dev/null;;
@@ -249,7 +240,6 @@ help() {
     echo "  -la, --minload          Load average detection"
 }
 
-# check if arguments are valid
 checkBool() {
     [ -n "$2" ] && [[ $2 = [01] ]] || die "Invalid argument. 0 or 1 expected after \"$1\" flag."
 }
@@ -288,7 +278,7 @@ while [ -n "$1" ]; do
             die "Invalid argument. See -h, --help for more information.";;
     esac
     
-    # arguments must be always passed in tuples
+    # Arguments must always be passed in tuples
     shift 2
 done
 
