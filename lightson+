@@ -16,11 +16,9 @@
 # One of {x, k, gnome-}screensaver must be installed.
 
 # HOW TO USE: 
-# "./lightson+ -d 120 &" will check every 120 seconds if Mplayer,
-# VLC, Firefox or Chromium are fullscreen and delay screensaver and Power Management if so.
-# You want the number of seconds to be ~10 seconds less than the time it takes
-# your screensaver or Power Management to activate.
-# If you don't pass an argument, the checks are done every 50 seconds.
+# "./lightson+ -d 2 &" will check every 2 minutes if Mplayer, VLC, Firefox or
+# Chromium are fullscreen and delay screensaver and Power Management if so.
+# If you don't pass an argument, the checks are done every minute.
 
 
 # Select the programs to be checked
@@ -37,8 +35,8 @@ steam_detection=0 # untested
 minitube_detection=0  # untested
 load_detection=0  # untested
 
-defaultdelay=50
 minload="1.5"
+delay=1
 
 # realdisp
 realdisp=`echo "$DISPLAY" | cut -d. -f1`
@@ -263,7 +261,7 @@ help() {
     echo "USAGE:    $ lighsonplus [FLAG1 ARG1] ... [FLAGn ARGn]"
     echo "FLAGS (ARGUMENTS must be 0 or 1, except stated otherwise):"
     echo ""
-    echo "  -d,  --delay            Time interval in seconds, default is 50s"
+    echo "  -d,  --delay            Time interval in minutes, default is 1 min"
     echo "  -mp, --mplayer          mplayer detection"
     echo "  -v,  --vlc              VLC detection"
     echo "  -t,  --totem            Totem detection"
@@ -278,13 +276,12 @@ help() {
     echo "  -minld, --minload             Load detection"
 }
 
-# check if arguments are valid, default to 50s interval if none is given
-delay=$defaultdelay
+# check if arguments are valid
 
 while [ ! -z $1 ]; do
     case $1 in
        "-d" | "--delay" )
-            [[ $2 = *[^0-9]* ]] && echo "Invalid argument. Time in seconds expected after \"$1\" flag. Got \"$2\" " && exit 1 || delay=$2;;
+            [[ $2 = *[^0-9]* ]] && echo "Invalid argument. Time in minutes expected after \"$1\" flag. Got \"$2\" " && exit 1 || delay=$2;;
        "-mp" | "--mplayer" )
             [[ $2 -eq 1 || $2 -eq 0 ]] && mplayer_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
         "-v" | "--vlc" )
@@ -321,6 +318,8 @@ while [ ! -z $1 ]; do
 done
 
 echo "start lightsOn mainloop"
+# Convert delay to seconds. We substract 10 for assurance.
+delay=$[delay*60-10]
 while true; do
     [ -f "$inhibitfile" ] && delayScreensaver || checkFullscreen
     sleep $delay
