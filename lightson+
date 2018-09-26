@@ -142,84 +142,56 @@ isAppRunning() {
     # Get title of active window
     active_win_title=`xprop -id $active_win_id | grep "WM_CLASS(STRING)" | sed 's/^.*", //;s/"//g'`
     
-    if [ $firefox_flash_detection == 1 ]; then
-        if [[ "$active_win_title" = *unknown* || "$active_win_title" = *plugin-container* ]]; then
-            # Check if plugin-container process is running
-            [ `pgrep -c plugin-container` -ge 1 ] && return 1
+    case "$active_win_title" in
+    *[Cc]hromium*)
+        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chromium --type=ppapi"` -ge 1 ] && return 1
+        [ "$html5_detection" = 1 ] && [ `pgrep -c chromium` -ge 1 ] && return 1
+        ;;
+    *[Cc]hrome*)
+        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chrome --type=ppapi"` -ge 1 ] && return 1
+        [ "$html5_detection" = 1 ] && [ `pgrep -c chrome` -ge 1 ] && return 1
+        ;;
+    *Firefox*)
+        [ "$html5_detection" = 1 ] && [ `pgrep -c firefox` -ge 1 ] && return 1
+        ;;
+    *opera*)
+        [ "$html5_detection" = 1 ] && [ `pgrep -c opera` -ge 1 ] && return 1
+        ;;
+    *epiphany*)
+        [ "$html5_detection" = 1 ] && [ `pgrep -c epiphany` -ge 1 ] && return 1
+        ;;
+    *unknown*|*plugin-container*)
+        [ "$firefox_flash_detection" = 1 ] && [ `pgrep -c plugin-container` -ge 1 ] && return 1
+        ;;
+    *WebKitPluginProcess*)
+        [ "$webkit_flash_detection" = 1 ] && [ `pgrep -fc ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 1
+        ;;
+    *MPlayer|mplayer*)
+        [ "$mplayer_detection" = 1 ] && [ `pgrep -c mplayer` -ge 1 ] && return 1
+        ;;
+    *vlc*|*VLC*)
+        [ $vlc_detection = 1 ] && [ `pgrep -c vlc` -ge 1 ] && return 1
+        ;;
+    *totem*)
+        [ $totem_detection = 1 ] && [ `pgrep -c totem` -ge 1 ] && return 1
+        ;;
+    *steam*)
+        [ $steam_detection = 1 ] && [ `pgrep -c steam` -ge 1 ] && return 1
+        ;;
+    *minitube*)
+        [ $minitube_detection = 1 ] && [ `pgrep -c minitube` -ge 1 ] && return 1
+        ;;
+    *)
+        if [ -n "$chrome_app_name" ]; then
+            # Check if google chrome is running in app mode
+            [[ "$active_win_title" == *$chrome_app_name* ]] && [ `pgrep -fc "chrome --app"` -ge 1 ] && return 1
         fi
-    fi
-    
-    if [ $chromium_flash_detection == 1 ]; then
-        if [ "$active_win_title" = *chrom* ]; then
-            # Check if Chromium Flash process is running
-            [ `pgrep -c "chromium --type=ppapi"` -ge 1 ] && return 1
-        fi
-        # Check if Chrome flash is running (by cadejager)
-        [ `pgrep -c "chrome --type=ppapi"` -ge 1 ] && return 1
-    fi
-    
-    if [ $webkit_flash_detection == 1 ]; then
-        if [ "$active_win_title" = *WebKitPluginProcess* ]; then
-            # Check if WebKit Flash process is running
-            [ `pgrep -c ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 1
-        fi
-    fi
-    
-    if [ $load_detection == 1 ]; then
-        [ "$(echo "$(sed 's/ .*$//' /proc/loadavg) > $minload" | bc -q)" -eq "1" ] && return 1
-    fi
-    
-    if [ $html5_detection == 1 ]; then
-        # chromium changed spelling  (c/C possible)
-        if [[ "$active_win_title" = *hrome* || "$active_win_title" = *hromium* || "$active_win_title" = *Firefox* || "$active_win_title" = *epiphany* || "$active_win_title" = *opera* ]]; then
-            # check if firefox or chromium is running.
-            [[ `pgrep -c chrome` -ge 1 || `pgrep -c firefox` -ge 1 || `pgrep -c chromium` -ge 1  || `pgrep -c opera` -ge 1 || `pgrep -c epiphany` -ge 1 ]] && return 1
-        fi
-    fi
-    
-    if [ -n "$chrome_app_name" ]; then
-        if [ "$active_win_title" = *$chrome_app_name* ]; then
-            # check if google chrome is runnig in app mode
-            [ `pgrep -fc "chrome --app"` -ge 1 ] && return 1
-        fi
-    fi
-        
-    if [ $mplayer_detection == 1 ]; then
-        if [[ "$active_win_title" = *mplayer* || "$active_win_title" = *MPlayer* ]]; then
-            # check if mplayer is running.
-            [ `prep -c mplayer` -ge 1 ] && return 1
-        fi
-    fi
-        
-    if [ $vlc_detection == 1 ]; then
-        if [[ "$active_win_title" = *vlc* || "$active_win_title" = *VLC* ]]; then
-            # check if vlc is running.
-            [ `pgrep -c vlc` -ge 1 ] && return 1
-        fi
-    fi
-        
-    if [ $totem_detection == 1 ]; then
-        if [ "$active_win_title" = *totem* ]; then
-            # check if totem is running.
-            [ `pgrep -c totem` -ge 1 ] && return 1
-        fi
-    fi
-    
-    if [ $steam_detection == 1 ]; then
-        if [ "$active_win_title" = *steam* ]; then
-            # check if steam is running.
-            [ `pgrep -c steam` -ge 1 ] && return 1
-        fi
-    fi
-    
-    if [ $minitube_detection == 1 ]; then
-        if [ "$active_win_title" = *minitube* ]; then
-            # check if minitube is running.
-            [ `pgrep -c minitube` -ge 1 ] && (log "isAppRunning(): minitube fullscreen detected" && return 1)
-        fi
-    fi
-        
-    return 0
+        ;;
+    esac
+
+    [ -n "$minload" ] && [ "$(echo "$(sed 's/ .*$//' /proc/loadavg) > $minload" | bc -q)" -eq "1" ] && return 1
+
+    false
 }
 
 delayScreensaver() {
