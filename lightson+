@@ -87,16 +87,15 @@ while read id; do
 done< <(xvinfo | sed -n 's/^screen #\([0-9]\+\)$/\1/p')
 
 # Detect screensaver been used
-# pgrep cuts off last character (not anymore)
 if [ `dbus-send --session --print-reply=literal --type=method_call --dest=org.freedesktop.ScreenSaver /ScreenSaver/ org.freedesktop.ScreenSaver.GetActive &> /dev/null; echo $?` -eq 0 ]; then
     screensaver="freedesktop-screensaver"
-#elif [ `pgrep -c gnome-shel` -ge 1 ] ;then
+#elif [ `pgrep -c gnome-shell` -ge 1 ] ;then
 #    screensaver="xdofallback"
-elif [ `pgrep -c xscreensave` -ge 1 ]; then
+elif [ `pgrep -c xscreensaver` -ge 1 ]; then
     screensaver="xscreensaver"
-elif [ `pgrep -c mate-screensave` -ge 1 ]; then
+elif [ `pgrep -c mate-screensaver` -ge 1 ]; then
     screensaver="mate-screensaver"
-elif [ `pgrep -c xautoloc` -ge 1 ]; then
+elif [ `pgrep -c xautolock` -ge 1 ]; then
     screensaver="xautolock"
 elif [ -e "/usr/bin/xdotool" ]; then
     screensaver="xdofallback"
@@ -148,8 +147,8 @@ isAppRunning() {
     
     if [ $firefox_flash_detection == 1 ]; then
         if [[ "$active_win_title" = *unknown* || "$active_win_title" = *plugin-container* ]]; then
-            # Check if plugin-container process is running, pgrep cuts off last character
-            [ `pgrep -c plugin-containe` -ge 1 ] && return 1
+            # Check if plugin-container process is running
+            [ `pgrep -c plugin-container` -ge 1 ] && return 1
         fi
     fi
     
