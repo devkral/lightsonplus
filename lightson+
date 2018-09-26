@@ -64,14 +64,14 @@ pidcreate() {
 
 pidremove() {
     if [ ! -e "$pidfile" ]; then
-        echo "error: missing pidfile" >&2
+        echo "Error: missing pidfile" >&2
     elif [ ! -f "$pidfile" ]; then
-        echo -e "error: \"$pidfile\" is not a file\n" >&2
+        echo -e "Error: \"$pidfile\" is not a file\n" >&2
     else
         if [ "$(cat "$pidfile")" != "$$" ]; then
             die "Another instance is running, abort!"
         else
-            rm "$pidfile"
+            rm -f "$pidfile"
         fi
     fi
     exit 0
@@ -101,7 +101,7 @@ elif [ -e "/usr/bin/xdotool" ]; then
     screensaver="xdofallback"
 else
     screensaver=""
-    die "No screensaver detected (and no xdotool)"
+    die "No screensaver detected"
 fi
 
 checkFullscreen() {
@@ -129,9 +129,7 @@ checkFullscreen() {
         fi
         
         if [[ "$isActivWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]] || [[ "$isTopWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]]; then
-            isAppRunning
-            var=$?
-            [ $var -eq 1 ] && delayScreensaver
+            isAppRunning && delayScreensaver
         fi
     done
 }
@@ -204,17 +202,17 @@ checkAudio() {
 delayScreensaver() {
     # reset inactivity time counter so screensaver is not started
     case $screensaver in
-        "xscreensaver" )
-            # This tells xscreensaver to pretend that there has just been user activity.
-            # This means that if the screensaver is active
-            # (the screen is blanked), then this command will cause the screen
-            # to un-blank as if there had been keyboard or mouse activity.
-            # If the screen is locked, then the password dialog will pop up first,
-            # as usual. If the screen is not blanked, then this simulated user
-            # activity will re-start the countdown (so, issuing the -deactivate
-            # command periodically is one way to prevent the screen from blanking.)
+    "xscreensaver" )
+        # This tells xscreensaver to pretend that there has just been user activity.
+        # This means that if the screensaver is active
+        # (the screen is blanked), then this command will cause the screen
+        # to un-blank as if there had been keyboard or mouse activity.
+        # If the screen is locked, then the password dialog will pop up first,
+        # as usual. If the screen is not blanked, then this simulated user
+        # activity will re-start the countdown (so, issuing the -deactivate
+        # command periodically is one way to prevent the screen from blanking.)
 
-            xscreensaver-command -deactivate > /dev/null;;
+        xscreensaver-command -deactivate > /dev/null;;
     "mate-screensaver" )
             mate-screensaver-command --poke > /dev/null;;
     "xautolock" )
@@ -229,7 +227,7 @@ delayScreensaver() {
     
     # Check if DPMS is on. If it is, deactivate and reactivate again. If it is not, do nothing.
     dpmsStatus=`xset -q | grep -c 'DPMS is Enabled'`
-    [ $dpmsStatus == 1 ] && (xset -dpms && xset dpms)
+    [ "$dpmsStatus" = 1 ] && xset -dpms && xset dpms
 }
 
 help() {
@@ -256,7 +254,7 @@ checkBool() {
     [ -n "$2" ] && [[ $2 = [01] ]] || die "Invalid argument. 0 or 1 expected after \"$1\" flag."
 }
 
-while [ ! -z $1 ]; do
+while [ -n "$1" ]; do
     case $1 in
        "-d" | "--delay" )
             [[ -z "$2" || "$2" = *[^0-9]* ]] && die "Invalid argument. Time in minutes expected after \"$1\" flag. Got \"$2\"" || delay=$2;;
@@ -294,9 +292,9 @@ while [ ! -z $1 ]; do
     shift 2
 done
 
-echo "start lightsOn mainloop"
 # Convert delay to seconds. We substract 10 for assurance.
 delay=$[delay*60-10]
+echo "Start lightson+ mainloop"
 while true; do
     [ -f "$inhibitfile" ] && delayScreensaver || checkFullscreen
     sleep $delay
