@@ -27,15 +27,12 @@ vlc_detection=1
 totem_detection=1
 firefox_flash_detection=1
 chromium_flash_detection=1
-chrome_app_detection=0
-chrome_app_name="Netflix"
+#chrome_app_name="Netflix"
 webkit_flash_detection=1 # untested
 html5_detection=1 # actually check whether your browser is toggled fullscreen, so simply surfing in fullscreen triggers screensaver inhibition as well (work in progress)
 steam_detection=0 # untested
 minitube_detection=0  # untested
-load_detection=0  # untested
-
-minload="1.5"
+#minload=1.5
 delay=1
 
 # realdisp
@@ -181,8 +178,8 @@ isAppRunning() {
         fi
     fi
     
-    if [ $chrome_app_detection == 1 ]; then
-        if [ ! -z $chrome_app_name && "$active_win_title" = *$chrome_app_name* ]; then
+    if [ -n "$chrome_app_name" ]; then
+        if [ "$active_win_title" = *$chrome_app_name* ]; then
             # check if google chrome is runnig in app mode
             [ `pgrep -fc "chrome --app"` -ge 1 ] && return 1
         fi
@@ -272,8 +269,7 @@ help() {
     echo "  -h5, --html5            HTML5 detection"
     echo "  -s,  --steam            Steam detection"
     echo "  -mt, --minitube         MiniTube detection"
-    echo "  -ld, --load             Load detection"
-    echo "  -minld, --minload             Load detection"
+    echo "  -la, --minload          Load average detection"
 }
 
 # check if arguments are valid
@@ -285,6 +281,10 @@ while [ ! -z $1 ]; do
     case $1 in
        "-d" | "--delay" )
             [[ $2 = *[^0-9]* ]] && die "Invalid argument. Time in minutes expected after \"$1\" flag. Got \"$2\" " || delay=$2;;
+        "-ca" | "--chrome-app" )
+            [ -n "$2" ] && chrome_app_name="$2" || die "Missing argument. Chrome app name expected after \"$1\" flag.";;
+        "-la" | "--minload" )
+            [ -n "$2" ] && [[ "$(echo "$2 > 0" | bc -q)" -eq 1 ]] && minload=$2 || die "Invalid argument. >0 expected after \"$1\" flag.";;
        "-mp" | "--mplayer" )
             checkBool "$@"; mplayer_detection=$2;;
         "-v" | "--vlc" )
@@ -295,9 +295,6 @@ while [ ! -z $1 ]; do
             checkBool "$@"; firefox_flash_detection=$2;;
         "-cf" | "--chromium-flash" )
             checkBool "$@"; chromium_flash_detection=$2;;
-        # passing an app name suffices to activate chrome app detection
-        "-ca" | "--chrome-app" )
-            [ ! -z $2 ] && (chrome_app_detection=$1 && chrome_app_name="$2") || die "Missing argument. Chrome app name expected after \"$1\" flag.";;
         "-wf" | "--webkit-flash" )
             checkBool "$@"; webkit_flash_detection=$2;;
         "-h5" | "--html5" )
@@ -306,10 +303,6 @@ while [ ! -z $1 ]; do
             checkBool "$@"; steam_detection=$2;;
         "-mt" | "--minitube" )
             checkBool "$@"; minitube_detection=$2;;
-        "-ld" | "--load" )
-            checkBool "$@"; load_detection=$2;;
-        "-minld" | "--minload" )
-            [[ "$(echo "$(sed 's/ .*$//' /proc/loadavg) > 0" | bc -q)" -eq 1 ]] && minload=$2 || die "Invalid argument. >0 expected after \"$1\" flag.";;
         "-h" | "--help" )
             help && exit 0;;
         * )
