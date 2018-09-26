@@ -277,34 +277,37 @@ help() {
 }
 
 # check if arguments are valid
+checkBool() {
+    [ -n "$2" ] && [[ $2 = [01] ]] || die "Invalid argument. 0 or 1 expected after \"$1\" flag."
+}
 
 while [ ! -z $1 ]; do
     case $1 in
        "-d" | "--delay" )
             [[ $2 = *[^0-9]* ]] && die "Invalid argument. Time in minutes expected after \"$1\" flag. Got \"$2\" " || delay=$2;;
        "-mp" | "--mplayer" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && mplayer_detection=$2 || die "Invalid argument. 0 or 1 expected after \"$1\" flag.";;
+            checkBool "$@"; mplayer_detection=$2;;
         "-v" | "--vlc" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && vlc_detection=$2 || die "Invalid argument. 0 or 1 expected after \"$1\" flag.";;
+            checkBool "$@"; vlc_detection=$2;;
         "-t" | "--totem" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && totem_detection=$2 || die "Invalid argument. 0 or 1 expected after \"$1\" flag.";;
+            checkBool "$@"; totem_detection=$2;;
         "-ff" | "--firefox-flash" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && firefox_flash_detection=$2 || die "Invalid argument. 0 or 1 expected after \"$1\" flag.";;
+            checkBool "$@"; firefox_flash_detection=$2;;
         "-cf" | "--chromium-flash" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && chromium_flash_detection=$2 || die "Invalid argument. 0 or 1 expected after \"$1\" flag.";;
+            checkBool "$@"; chromium_flash_detection=$2;;
         # passing an app name suffices to activate chrome app detection
         "-ca" | "--chrome-app" )
             [ ! -z $2 ] && (chrome_app_detection=$1 && chrome_app_name="$2") || die "Missing argument. Chrome app name expected after \"$1\" flag.";;
         "-wf" | "--webkit-flash" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && webkit_flash_detection=$2 || die "Invalid argument. 0 or 1 expected after \"$1\" flag.";;
+            checkBool "$@"; webkit_flash_detection=$2;;
         "-h5" | "--html5" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && html5_detection=$2 || die "Invalid argument. 0 or 1 expected after \"$1\" flag.";;
+            checkBool "$@"; html5_detection=$2;;
         "-s" | "--steam" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && steam_detection=$2 || die "Invalid argument. 0 or 1 expected after \"$1\" flag.";;
+            checkBool "$@"; steam_detection=$2;;
         "-mt" | "--minitube" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && minitube_detection=$2 || die "Invalid argument. 0 or 1 expected after \"$1\" flag.";;
+            checkBool "$@"; minitube_detection=$2;;
         "-ld" | "--load" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && load_detection=$2 || die "Invalid argument. 0 or 1 expected after \"$1\" flag.";;
+            checkBool "$@"; load_detection=$2;;
         "-minld" | "--minload" )
             [[ "$(echo "$(sed 's/ .*$//' /proc/loadavg) > 0" | bc -q)" -eq 1 ]] && minload=$2 || die "Invalid argument. >0 expected after \"$1\" flag.";;
         "-h" | "--help" )
