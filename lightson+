@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # lightson+
 
+# Copyright (c) 2018 spinal.by at gmail com
 # Copyright (c) 2014 devkral at web de
 # url: https://github.com/devkral/lightsonplus
 
@@ -16,11 +17,9 @@
 # One of {x, k, gnome-}screensaver must be installed.
 
 # HOW TO USE: 
-# "./lightson+ -d 120 &" will check every 120 seconds if Mplayer,
-# VLC, Firefox or Chromium are fullscreen and delay screensaver and Power Management if so.
-# You want the number of seconds to be ~10 seconds less than the time it takes
-# your screensaver or Power Management to activate.
-# If you don't pass an argument, the checks are done every 50 seconds.
+# "./lightson+ -d 2 &" will check every 2 minutes if Mplayer, VLC, Firefox or
+# Chromium are fullscreen and delay screensaver and Power Management if so.
+# If you don't pass an argument, the checks are done every minute.
 
 
 # Select the programs to be checked
@@ -29,16 +28,14 @@ vlc_detection=1
 totem_detection=1
 firefox_flash_detection=1
 chromium_flash_detection=1
-chrome_app_detection=0
-chrome_app_name="Netflix"
-webkit_flash_detection=1 # untested
-html5_detection=1 # actually check whether your browser is toggled fullscreen, so simply surfing in fullscreen triggers screensaver inhibition as well (work in progress)
-steam_detection=0 # untested
-minitube_detection=0  # untested
-load_detection=0  # untested
-
-defaultdelay=50
-minload="1.5"
+#chrome_app_name="Netflix"
+webkit_flash_detection=1
+html5_detection=1
+steam_detection=0
+minitube_detection=0
+audio_detection=0
+#minload=1.5
+delay=1
 
 # realdisp
 realdisp=`echo "$DISPLAY" | cut -d. -f1`
@@ -47,16 +44,18 @@ inhibitfile="/tmp/lightsoninhibit-$UID-$realdisp"
 pidfile="/tmp/lightson-$UID-$realdisp.pid"
 
 # YOU SHOULD NOT NEED TO MODIFY ANYTHING BELOW THIS LINE
+die() {
+    echo "$@" >&2
+    exit 1
+}
 
-# pidlocking
 pidcreate() {
     # just one instance can run simultaneously
     if [ ! -e "$pidfile" ]; then
         echo "$$" > "$pidfile"
     else
         if [ -d "/proc/$(cat "$pidfile")" ]; then
-            echo "an other instance is running, abort!" >&2
-            exit 1
+            die "Another instance is running, abort!"
         else
             echo "$$" > "$pidfile"
         fi
@@ -65,15 +64,14 @@ pidcreate() {
 
 pidremove() {
     if [ ! -e "$pidfile" ]; then
-        echo "error: missing pidfile" >&2
+        echo "Error: missing pidfile" >&2
     elif [ ! -f "$pidfile" ]; then
-        echo -e "error: \"$pidfile\" is not a file\n" >&2
+        echo -e "Error: \"$pidfile\" is not a file\n" >&2
     else
         if [ "$(cat "$pidfile")" != "$$" ]; then
-            echo "an other instance is running, abort!" >&2
-            exit 1
+            die "Another instance is running, abort!"
         else
-            rm "$pidfile"
+            rm -f "$pidfile"
         fi
     fi
     exit 0
@@ -82,47 +80,45 @@ pidremove() {
 pidcreate
 trap "pidremove" EXIT
 
-# enumerate all the attached screens
+# Enumerate all the attached screens
 displays=""
 while read id; do
     displays="$displays $id"
 done< <(xvinfo | sed -n 's/^screen #\([0-9]\+\)$/\1/p')
 
-# Detect screensaver been used
-# pgrep cuts off last character (not anymore)
+# Detect screensaver being used
 if [ `dbus-send --session --print-reply=literal --type=method_call --dest=org.freedesktop.ScreenSaver /ScreenSaver/ org.freedesktop.ScreenSaver.GetActive &> /dev/null; echo $?` -eq 0 ]; then
     screensaver="freedesktop-screensaver"
-#elif [ `pgrep -c gnome-shel` -ge 1 ] ;then
+#elif [ `pgrep -c gnome-shell` -ge 1 ] ;then
 #    screensaver="xdofallback"
-elif [ `pgrep -c xscreensave` -ge 1 ]; then
+elif [ `pgrep -c xscreensaver` -ge 1 ]; then
     screensaver="xscreensaver"
-elif [ `pgrep -c mate-screensave` -ge 1 ]; then
+elif [ `pgrep -c mate-screensaver` -ge 1 ]; then
     screensaver="mate-screensaver"
-elif [ `pgrep -c xautoloc` -ge 1 ]; then
+elif [ `pgrep -c xautolock` -ge 1 ]; then
     screensaver="xautolock"
 elif [ -e "/usr/bin/xdotool" ]; then
     screensaver="xdofallback"
 else
     screensaver=""
-    echo "No screensaver detected (and no xdotool)"
-    exit 1
+    die "No screensaver detected"
 fi
 
 checkFullscreen() {
     # loop through every display looking for a fullscreen window
     for display in $displays; do
         # get id of active window and clean output
-        activ_win_id=`DISPLAY=$realdisp.${display} xprop -root _NET_ACTIVE_WINDOW`
-        activ_win_id=${activ_win_id##*# }
-        activ_win_id=${activ_win_id:0:9} # eliminate potentially trailing spaces
+        active_win_id=`DISPLAY=$realdisp.${display} xprop -root _NET_ACTIVE_WINDOW`
+        active_win_id=${active_win_id##*# }
+        active_win_id=${active_win_id:0:9} # eliminate potentially trailing spaces
         
         top_win_id=`DISPLAY=$realdisp.${display} xprop -root _NET_CLIENT_LIST_STACKING`
-        top_win_id=${activ_win_id##*, }
+        top_win_id=${active_win_id##*, }
         top_win_id=${top_win_id:0:9} # eliminate potentially trailing spaces
         
         # Check if Active Window (the foremost window) is in fullscreen state
-        if [ ${#activ_win_id} -ge 3 ]; then
-            isActivWinFullscreen=`DISPLAY=$realdisp.${display} xprop -id $activ_win_id | grep _NET_WM_STATE_FULLSCREEN`
+        if [ ${#active_win_id} -ge 3 ]; then
+            isActivWinFullscreen=`DISPLAY=$realdisp.${display} xprop -id $active_win_id | grep _NET_WM_STATE_FULLSCREEN`
         else
             isActiveWinFullscreen=""
         fi
@@ -133,115 +129,81 @@ checkFullscreen() {
         fi
         
         if [[ "$isActivWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]] || [[ "$isTopWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]]; then
-            isAppRunning
-            var=$?
-            [ $var -eq 1 ] && delayScreensaver
+            isAppRunning && delayScreensaver
         fi
     done
 }
 
-# check if active window is mplayer, vlc or firefox
-# TODO only window name in the variable activ_win_id, not whole line. 
+# Check if active window is mplayer, vlc or firefox
 # Then change IFs to detect more specifically the apps "<vlc>" and if process name exist
 
 isAppRunning() {
     # Get title of active window
-    activ_win_title=`xprop -id $activ_win_id | grep "WM_CLASS(STRING)"` # I used WM_NAME(STRING) before, WM_CLASS is more accurate.
+    active_win_title=`xprop -id $active_win_id | grep "WM_CLASS(STRING)" | sed 's/^.*", //;s/"//g'`
     
-    if [ $firefox_flash_detection == 1 ]; then
-        if [[ "$activ_win_title" = *unknown* || "$activ_win_title" = *plugin-container* ]]; then
-            # Check if plugin-container process is running, pgrep cuts off last character
-            [ `pgrep -c plugin-containe` -ge 1 ] && return 1
+    case "$active_win_title" in
+    *[Cc]hromium*)
+        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chromium --type=ppapi"` -ge 1 ] && return 0
+        [ "$html5_detection" = 1 ] && [ `pgrep -c chromium` -ge 1 ] && checkAudio "chromium" && return 0
+        ;;
+    *[Cc]hrome*)
+        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chrome --type=ppapi"` -ge 1 ] && return 0
+        [ "$html5_detection" = 1 ] && [ `pgrep -c chrome` -ge 1 ] && checkAudio "chrome" && return 0
+        ;;
+    *Firefox*)
+        [ "$html5_detection" = 1 ] && [ `pgrep -c firefox` -ge 1 ] && checkAudio "firefox" && return 0
+        ;;
+    *opera*)
+        [ "$html5_detection" = 1 ] && [ `pgrep -c opera` -ge 1 ] && checkAudio "opera" && return 0
+        ;;
+    *epiphany*)
+        [ "$html5_detection" = 1 ] && [ `pgrep -c epiphany` -ge 1 ] && checkAudio "epiphany" && return 0
+        ;;
+    *unknown*|*plugin-container*)
+        [ "$firefox_flash_detection" = 1 ] && [ `pgrep -c plugin-container` -ge 1 ] && return 0
+        ;;
+    *WebKitPluginProcess*)
+        [ "$webkit_flash_detection" = 1 ] && [ `pgrep -fc ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 0
+        ;;
+    *MPlayer|mplayer*)
+        [ "$mplayer_detection" = 1 ] && [ `pgrep -c mplayer` -ge 1 ] && checkAudio mplayer && return 0
+        ;;
+    *vlc*|*VLC*)
+        [ $vlc_detection = 1 ] && [ `pgrep -c vlc` -ge 1 ] && checkAudio vlc && return 0
+        ;;
+    *totem*)
+        [ $totem_detection = 1 ] && [ `pgrep -c totem` -ge 1 ] && checkAudio totem && return 0
+        ;;
+    *steam*)
+        [ $steam_detection = 1 ] && [ `pgrep -c steam` -ge 1 ] && return 0
+        ;;
+    *minitube*)
+        [ $minitube_detection = 1 ] && [ `pgrep -c minitube` -ge 1 ] && return 0
+        ;;
+    *)
+        if [ -n "$chrome_app_name" ]; then
+            # Check if google chrome is running in app mode
+            [[ "$active_win_title" == *$chrome_app_name* ]] && [ `pgrep -fc "chrome --app"` -ge 1 ] && return 0
         fi
-    fi
-    
-    if [ $chromium_flash_detection == 1 ]; then
-        if [ "$activ_win_title" = *chrom* ]; then
-            # Check if Chromium Flash process is running
-            [ `pgrep -c "chromium --type=ppapi"` -ge 1 ] && return 1
-        fi
-        # Check if Chrome flash is running (by cadejager)
-        [ `pgrep -c "chrome --type=ppapi"` -ge 1 ] && return 1
-    fi
-    
-    if [ $webkit_flash_detection == 1 ]; then
-        if [ "$activ_win_title" = *WebKitPluginProcess* ]; then
-            # Check if WebKit Flash process is running
-            [ `pgrep -c ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 1
-        fi
-    fi
-    
-    if [ $load_detection == 1 ]; then
-        [ "$(echo "$(sed 's/ .*$//' /proc/loadavg) > $minload" | bc -q)" -eq "1" ] && return 1
-    fi
-    
-    if [ $html5_detection == 1 ]; then
-        # chromium changed spelling  (c/C possible)
-        if [[ "$activ_win_title" = *hrome* || "$activ_win_title" = *hromium* || "$activ_win_title" = *Firefox* || "$activ_win_title" = *epiphany* || "$activ_win_title" = *opera* ]]; then
-            # check if firefox or chromium is running.
-            [[ `pgrep -c chrome` -ge 1 || `pgrep -c firefox` -ge 1 || `pgrep -c chromium` -ge 1  || `pgrep -c opera` -ge 1 || `pgrep -c epiphany` -ge 1 ]] && return 1
-        fi
-    fi
-    
-    if [ $chrome_app_detection == 1 ]; then
-        if [ ! -z $chrome_app_name && "$activ_win_title" = *$chrome_app_name* ]; then
-            # check if google chrome is runnig in app mode
-            [ `pgrep -fc "chrome --app"` -ge 1 ] && return 1
-        fi
-    fi
-        
-    if [ $mplayer_detection == 1 ]; then
-        if [[ "$activ_win_title" = *mplayer* || "$activ_win_title" = *MPlayer* ]]; then
-            # check if mplayer is running.
-            [ `prep -c mplayer` -ge 1 ] && return 1
-        fi
-    fi
-        
-    if [ $vlc_detection == 1 ]; then
-        if [[ "$activ_win_title" = *vlc* || "$activ_win_title" = *VLC* ]]; then
-            # check if vlc is running.
-            [ `pgrep -c vlc` -ge 1 ] && return 1
-        fi
-    fi
-        
-    if [ $totem_detection == 1 ]; then
-        if [ "$activ_win_title" = *totem* ]; then
-            # check if totem is running.
-            [ `pgrep -c totem` -ge 1 ] && return 1
-        fi
-    fi
-    
-    if [ $steam_detection == 1 ]; then
-        if [ "$activ_win_title" = *steam* ]; then
-            # check if steam is running.
-            [ `pgrep -c steam` -ge 1 ] && return 1
-        fi
-    fi
-    
-    if [ $minitube_detection == 1 ]; then
-        if [ "$activ_win_title" = *minitube* ]; then
-            # check if minitube is running.
-            [ `pgrep -c minitube` -ge 1 ] && (log "isAppRunning(): minitube fullscreen detected" && return 1)
-        fi
-    fi
-        
-    return 0
+        ;;
+    esac
+
+    [ -n "$minload" ] && [ "$(echo "$(sed 's/ .*$//' /proc/loadavg) > $minload" | bc -q)" -eq "1" ] && return 0
+
+    false
+}
+
+checkAudio() {
+    # Check if application is streaming sound to PulseAudio
+	[ $audio_detection = 0 ] && return 0
+	pacmd list-sink-inputs | grep -Eiq "application.name = .*$1.*"
 }
 
 delayScreensaver() {
-    # reset inactivity time counter so screensaver is not started
+    # Reset inactivity time counter so screensaver is not started
     case $screensaver in
-        "xscreensaver" )
-            # This tells xscreensaver to pretend that there has just been user activity.
-            # This means that if the screensaver is active
-            # (the screen is blanked), then this command will cause the screen
-            # to un-blank as if there had been keyboard or mouse activity.
-            # If the screen is locked, then the password dialog will pop up first,
-            # as usual. If the screen is not blanked, then this simulated user
-            # activity will re-start the countdown (so, issuing the -deactivate
-            # command periodically is one way to prevent the screen from blanking.)
-
-            xscreensaver-command -deactivate > /dev/null;;
+    "xscreensaver" )
+        xscreensaver-command -deactivate > /dev/null;;
     "mate-screensaver" )
             mate-screensaver-command --poke > /dev/null;;
     "xautolock" )
@@ -256,14 +218,15 @@ delayScreensaver() {
     
     # Check if DPMS is on. If it is, deactivate and reactivate again. If it is not, do nothing.
     dpmsStatus=`xset -q | grep -c 'DPMS is Enabled'`
-    [ $dpmsStatus == 1 ] && (xset -dpms && xset dpms)
+    [ "$dpmsStatus" = 1 ] && xset -dpms && xset dpms
 }
 
 help() {
     echo "USAGE:    $ lighsonplus [FLAG1 ARG1] ... [FLAGn ARGn]"
     echo "FLAGS (ARGUMENTS must be 0 or 1, except stated otherwise):"
     echo ""
-    echo "  -d,  --delay            Time interval in seconds, default is 50s"
+    echo "  -d,  --delay            Time interval in minutes, default is 1 min"
+    echo "  -pa, --audio            Audio detection"
     echo "  -mp, --mplayer          mplayer detection"
     echo "  -v,  --vlc              VLC detection"
     echo "  -t,  --totem            Totem detection"
@@ -274,53 +237,54 @@ help() {
     echo "  -h5, --html5            HTML5 detection"
     echo "  -s,  --steam            Steam detection"
     echo "  -mt, --minitube         MiniTube detection"
-    echo "  -ld, --load             Load detection"
-    echo "  -minld, --minload             Load detection"
+    echo "  -la, --minload          Load average detection"
 }
 
-# check if arguments are valid, default to 50s interval if none is given
-delay=$defaultdelay
+checkBool() {
+    [ -n "$2" ] && [[ $2 = [01] ]] || die "Invalid argument. 0 or 1 expected after \"$1\" flag."
+}
 
-while [ ! -z $1 ]; do
+while [ -n "$1" ]; do
     case $1 in
        "-d" | "--delay" )
-            [[ $2 = *[^0-9]* ]] && echo "Invalid argument. Time in seconds expected after \"$1\" flag. Got \"$2\" " && exit 1 || delay=$2;;
-       "-mp" | "--mplayer" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && mplayer_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
-        "-v" | "--vlc" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && vlc_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
-        "-t" | "--totem" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && totem_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
-        "-ff" | "--firefox-flash" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && firefox_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
-        "-cf" | "--chromium-flash" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && chromium_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
-        # passing an app name suffices to activate chrome app detection
+            [[ -z "$2" || "$2" = *[^0-9]* ]] && die "Invalid argument. Time in minutes expected after \"$1\" flag. Got \"$2\"" || delay=$2;;
         "-ca" | "--chrome-app" )
-            [ ! -z $2 ] && (chrome_app_detection=$1 && chrome_app_name="$2") || (echo "Missing argument. Chrome app name expected after \"$1\" flag." && exit 1);;
+            [ -n "$2" ] && chrome_app_name="$2" || die "Missing argument. Chrome app name expected after \"$1\" flag.";;
+        "-la" | "--minload" )
+            [ -n "$2" ] && [[ "$(echo "$2 > 0" | bc -q)" -eq 1 ]] && minload=$2 || die "Invalid argument. >0 expected after \"$1\" flag.";;
+        "-pa" | "--audio" )
+            checkBool "$@"; audio_detection=$2;;
+       "-mp" | "--mplayer" )
+            checkBool "$@"; mplayer_detection=$2;;
+        "-v" | "--vlc" )
+            checkBool "$@"; vlc_detection=$2;;
+        "-t" | "--totem" )
+            checkBool "$@"; totem_detection=$2;;
+        "-ff" | "--firefox-flash" )
+            checkBool "$@"; firefox_flash_detection=$2;;
+        "-cf" | "--chromium-flash" )
+            checkBool "$@"; chromium_flash_detection=$2;;
         "-wf" | "--webkit-flash" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && webkit_flash_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+            checkBool "$@"; webkit_flash_detection=$2;;
         "-h5" | "--html5" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && html5_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+            checkBool "$@"; html5_detection=$2;;
         "-s" | "--steam" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && steam_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
+            checkBool "$@"; steam_detection=$2;;
         "-mt" | "--minitube" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && minitube_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
-        "-ld" | "--load" )
-            [[ $2 -eq 1 || $2 -eq 0 ]] && load_detection=$2 || (echo "Invalid argument. 0 or 1 expected after \"$1\" flag." && exit 1);;
-        "-minld" | "--minload" )
-            [[ "$(echo "$(sed 's/ .*$//' /proc/loadavg) > 0" | bc -q)" -eq 1 ]] && minload=$2 || (echo "Invalid argument. >0 expected after \"$1\" flag." && exit 1);;
+            checkBool "$@"; minitube_detection=$2;;
         "-h" | "--help" )
             help && exit 0;;
         * )
-            echo "Invalid argument. See -h, --help for more information." && exit 1;;
+            die "Invalid argument. See -h, --help for more information.";;
     esac
     
-    # arguments must be always passed in tuples
+    # Arguments must always be passed in tuples
     shift 2
 done
 
-echo "start lightsOn mainloop"
+# Convert delay to seconds. We substract 10 for assurance.
+delay=$[delay*60-10]
+echo "Start lightson+ mainloop"
 while true; do
     [ -f "$inhibitfile" ] && delayScreensaver || checkFullscreen
     sleep $delay
