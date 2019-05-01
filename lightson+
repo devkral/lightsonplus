@@ -195,8 +195,8 @@ isAppRunning() {
 
 checkAudio() {
     # Check if application is streaming sound to PulseAudio
-	[ $audio_detection = 0 ] && return 0
-	pacmd list-sink-inputs | grep -Eiq "application.name = .*$1.*"
+    [ $audio_detection = 0 ] && return 0
+    pacmd list-sink-inputs | grep -Eiq "application.name = .*$1.*"
 }
 
 delayScreensaver() {
