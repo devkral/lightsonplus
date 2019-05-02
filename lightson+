@@ -148,7 +148,7 @@ isAppRunning() {
         ;;
     *[Cc]hrome*)
         [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chrome --type=ppapi"` -ge 1 ] && return 0
-        [ "$html5_detection" = 1 ] && [ `pgrep -c chrome` -ge 1 ] && checkAudio "chrome" && return 0
+        [ "$html5_detection" = 1 ] && [ `pgrep -c chrome` -ge 1 ] && checkAudio "chrom" && return 0
         ;;
     *Firefox*)
         [ "$html5_detection" = 1 ] && [ `pgrep -c firefox` -ge 1 ] && checkAudio "firefox" && return 0
@@ -195,8 +195,8 @@ isAppRunning() {
 
 checkAudio() {
     # Check if application is streaming sound to PulseAudio
-	[ $audio_detection = 0 ] && return 0
-	pacmd list-sink-inputs | grep -Eiq "application.name = .*$1.*"
+    [ $audio_detection = 0 ] && return 0
+    pacmd list-sink-inputs | grep -Eiq "application.name = .*$1.*"
 }
 
 delayScreensaver() {
