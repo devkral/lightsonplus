@@ -24,7 +24,7 @@
 
 # Select the programs to be checked
 mplayer_detection=0
-plex_detection=1
+plex_detection=0
 vlc_detection=1
 totem_detection=1
 firefox_flash_detection=1
@@ -37,8 +37,9 @@ minitube_detection=0
 audio_detection=1
 #minload=1.5
 delay=1
-detect_by_name=1
-window_name="Plex Media Player"
+# You can find the value for this with `xprop WM_NAME`
+# (click on the window once the mouse is a crosshair)
+window_name=""
 
 # realdisp
 realdisp=`echo "$DISPLAY" | cut -d. -f1`
@@ -131,7 +132,7 @@ checkFullscreen() {
             isTopWinFullscreen=""
         fi
 
-        if [ $detect_by_name -eq 1 ]; then
+        if [ -n "$window_name" ]; then
             isNamedFullscreen=`DISPLAY=$realdisp.${display} xprop -name "$window_name" | grep _NET_WM_STATE_FULLSCREEN`
         else
             isNamedFulscreen=""
@@ -254,19 +255,21 @@ help() {
     echo "USAGE:    $ lighsonplus [FLAG1 ARG1] ... [FLAGn ARGn]"
     echo "FLAGS (ARGUMENTS must be 0 or 1, except stated otherwise):"
     echo ""
-    echo "  -d,  --delay            Time interval in minutes, default is 1 min"
-    echo "  -pa, --audio            Audio detection"
-    echo "  -mp, --mplayer          mplayer detection"
-    echo "  -v,  --vlc              VLC detection"
-    echo "  -t,  --totem            Totem detection"
-    echo "  -ff, --firefox-flash    Firefox flash plugin detection"
-    echo "  -cf, --chromium-flash   Chromium flash plugin detection"
-    echo "  -ca, --chrome-app       Chrome app detection, app name must be passed"
-    echo "  -wf, --webkit-flash     Webkit flash detection"
-    echo "  -h5, --html5            HTML5 detection"
-    echo "  -s,  --steam            Steam detection"
-    echo "  -mt, --minitube         MiniTube detection"
-    echo "  -la, --minload          Load average detection"
+    echo "  -d,  --delay             Time interval in minutes, default is 1 min"
+    echo "  -pa, --audio             Audio detection"
+    echo "  -mp, --mplayer           mplayer detection"
+    echo "  -v,  --vlc               VLC detection"
+    echo "  -t,  --totem             Totem detection"
+    echo "  -pl, --plex-media-player Plex Media Player detection"
+    echo "  -ff, --firefox-flash     Firefox flash plugin detection"
+    echo "  -cf, --chromium-flash    Chromium flash plugin detection"
+    echo "  -ca, --chrome-app        Chrome app detection, app name must be passed"
+    echo "  -wf, --webkit-flash      Webkit flash detection"
+    echo "  -h5, --html5             HTML5 detection"
+    echo "  -s,  --steam             Steam detection"
+    echo "  -mt, --minitube          MiniTube detection"
+    echo "  -la, --minload           Load average detection"
+    echo "  -wn, --window-name       Detect by window name"
 }
 
 checkBool() {
@@ -279,6 +282,8 @@ while [ -n "$1" ]; do
             [[ -z "$2" || "$2" = *[^0-9]* ]] && die "Invalid argument. Time in minutes expected after \"$1\" flag. Got \"$2\"" || delay=$2;;
         "-ca" | "--chrome-app" )
             [ -n "$2" ] && chrome_app_name="$2" || die "Missing argument. Chrome app name expected after \"$1\" flag.";;
+        "-wn" | "--window-name" )
+            [ -n "$2" ] && window_name="$2" || die "Missing argument. Window name expected after \"$1\" flag.";;
         "-la" | "--minload" )
             [ -n "$2" ] && [[ "$(echo "$2 > 0" | bc -q)" -eq 1 ]] && minload=$2 || die "Invalid argument. >0 expected after \"$1\" flag.";;
         "-pa" | "--audio" )
@@ -289,6 +294,8 @@ while [ -n "$1" ]; do
             checkBool "$@"; vlc_detection=$2;;
         "-t" | "--totem" )
             checkBool "$@"; totem_detection=$2;;
+        "-pl" | "--plex-media-player" )
+            checkBool "$@"; plex_detection=$2;;
         "-ff" | "--firefox-flash" )
             checkBool "$@"; firefox_flash_detection=$2;;
         "-cf" | "--chromium-flash" )
