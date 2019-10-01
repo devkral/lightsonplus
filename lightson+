@@ -34,7 +34,7 @@ webkit_flash_detection=1
 html5_detection=1
 steam_detection=0
 minitube_detection=0
-audio_detection=1
+audio_detection=0
 #minload=1.5
 delay=1
 # You can find the value for this with `xprop WM_NAME`
