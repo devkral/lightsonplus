@@ -16,7 +16,7 @@
 # can also be detected.
 # One of {x, k, gnome-}screensaver must be installed.
 
-# HOW TO USE: 
+# HOW TO USE:
 # "./lightson+ -d 2 &" will check every 2 minutes if Mplayer, VLC, Firefox or
 # Chromium are fullscreen and delay screensaver and Power Management if so.
 # If you don't pass an argument, the checks are done every minute.
@@ -24,6 +24,7 @@
 
 # Select the programs to be checked
 mplayer_detection=0
+plex_detection=1
 vlc_detection=1
 totem_detection=1
 firefox_flash_detection=1
@@ -33,9 +34,11 @@ webkit_flash_detection=1
 html5_detection=1
 steam_detection=0
 minitube_detection=0
-audio_detection=0
+audio_detection=1
 #minload=1.5
 delay=1
+detect_by_name=1
+window_name="Plex Media Player"
 
 # realdisp
 realdisp=`echo "$DISPLAY" | cut -d. -f1`
@@ -111,11 +114,11 @@ checkFullscreen() {
         active_win_id=`DISPLAY=$realdisp.${display} xprop -root _NET_ACTIVE_WINDOW`
         active_win_id=${active_win_id##*# }
         active_win_id=${active_win_id:0:9} # eliminate potentially trailing spaces
-        
+
         top_win_id=`DISPLAY=$realdisp.${display} xprop -root _NET_CLIENT_LIST_STACKING`
         top_win_id=${active_win_id##*, }
         top_win_id=${top_win_id:0:9} # eliminate potentially trailing spaces
-        
+
         # Check if Active Window (the foremost window) is in fullscreen state
         if [ ${#active_win_id} -ge 3 ]; then
             isActiveWinFullscreen=`DISPLAY=$realdisp.${display} xprop -id $active_win_id | grep _NET_WM_STATE_FULLSCREEN`
@@ -127,9 +130,22 @@ checkFullscreen() {
         else
             isTopWinFullscreen=""
         fi
-        
+
+        if [ $detect_by_name -eq 1 ]; then
+            isNamedFullscreen=`DISPLAY=$realdisp.${display} xprop -name "$window_name" | grep _NET_WM_STATE_FULLSCREEN`
+        else
+            isNamedFulscreen=""
+        fi
+
         if [[ "$isActiveWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]] || [[ "$isTopWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]]; then
             isAppRunning && delayScreensaver
+        fi
+
+        # If we are detecting by named application, then we need to detect if any audio is playing.
+        # Detecting by name is used for multiple monitors where the video might be playing, but
+        # not in focus.
+        if [[ "$isNamedFullscreen" = *NET_WM_STATE_FULLSCREEN* ]]; then
+            checkAudioPlaying && delayScreensaver
         fi
     done
 }
@@ -140,7 +156,7 @@ checkFullscreen() {
 isAppRunning() {
     # Get title of active window
     active_win_title=`xprop -id $active_win_id | grep "WM_CLASS(STRING)" | sed 's/^.*", //;s/"//g'`
-    
+
     case "$active_win_title" in
     *[Cc]hromium*)
         [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chromium --type=ppapi"` -ge 1 ] && return 0
@@ -168,6 +184,9 @@ isAppRunning() {
     *MPlayer|mplayer*)
         [ "$mplayer_detection" = 1 ] && [ `pgrep -c mplayer` -ge 1 ] && checkAudio mplayer && return 0
         ;;
+    *plexmediaplayer*)
+        [ "$plex_detection" = 1 ] && [ `pgrep -c plexmediaplayer` -ge 1 ] && checkAudio "Plex Media Player" && return 0
+        ;;
     *vlc*|*VLC*)
         [ $vlc_detection = 1 ] && [ `pgrep -c vlc` -ge 1 ] && checkAudio vlc && return 0
         ;;
@@ -193,6 +212,16 @@ isAppRunning() {
     false
 }
 
+checkAudioPlaying() {
+    # Check if any application is playing sounds in pulse
+    # This is useful if your application keeps the stream in pulse open
+    # but, lists it as CORKED for example.
+    # It's also useful if you watch videos on multiple monitors and might not
+    # have the video in focus.
+    [ $audio_detection = 0 ] && return 0
+    pacmd list-sink-inputs | grep -Eiq "RUNNING"
+}
+
 checkAudio() {
     # Check if application is streaming sound to PulseAudio
     [ $audio_detection = 0 ] && return 0
@@ -215,7 +244,7 @@ delayScreensaver() {
     "freedesktop-screensaver" )
         dbus-send --session --reply-timeout=2000 --type=method_call --dest=org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity;;
     esac
-    
+
     # Check if DPMS is on. If it is, deactivate and reactivate again. If it is not, do nothing.
     dpmsStatus=`xset -q | grep -c 'DPMS is Enabled'`
     [ "$dpmsStatus" = 1 ] && xset -dpms && xset dpms
@@ -277,7 +306,7 @@ while [ -n "$1" ]; do
         * )
             die "Invalid argument. See -h, --help for more information.";;
     esac
-    
+
     # Arguments must always be passed in tuples
     shift 2
 done
