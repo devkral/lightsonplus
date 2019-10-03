@@ -16,7 +16,7 @@
 # can also be detected.
 # One of {x, k, gnome-}screensaver must be installed.
 
-# HOW TO USE: 
+# HOW TO USE:
 # "./lightson+ -d 2 &" will check every 2 minutes if Mplayer, VLC, Firefox or
 # Chromium are fullscreen and delay screensaver and Power Management if so.
 # If you don't pass an argument, the checks are done every minute.
@@ -24,6 +24,7 @@
 
 # Select the programs to be checked
 mplayer_detection=0
+plex_detection=0
 vlc_detection=1
 totem_detection=1
 firefox_flash_detection=1
@@ -36,6 +37,9 @@ minitube_detection=0
 audio_detection=0
 #minload=1.5
 delay=1
+# You can find the value for this with `xprop WM_NAME`
+# (click on the window once the mouse is a crosshair)
+window_name=""
 
 # realdisp
 realdisp=`echo "$DISPLAY" | cut -d. -f1`
@@ -111,11 +115,11 @@ checkFullscreen() {
         active_win_id=`DISPLAY=$realdisp.${display} xprop -root _NET_ACTIVE_WINDOW`
         active_win_id=${active_win_id##*# }
         active_win_id=${active_win_id:0:9} # eliminate potentially trailing spaces
-        
+
         top_win_id=`DISPLAY=$realdisp.${display} xprop -root _NET_CLIENT_LIST_STACKING`
         top_win_id=${active_win_id##*, }
         top_win_id=${top_win_id:0:9} # eliminate potentially trailing spaces
-        
+
         # Check if Active Window (the foremost window) is in fullscreen state
         if [ ${#active_win_id} -ge 3 ]; then
             isActiveWinFullscreen=`DISPLAY=$realdisp.${display} xprop -id $active_win_id | grep _NET_WM_STATE_FULLSCREEN`
@@ -127,9 +131,22 @@ checkFullscreen() {
         else
             isTopWinFullscreen=""
         fi
-        
+
+        if [ -n "$window_name" ]; then
+            isNamedFullscreen=`DISPLAY=$realdisp.${display} xprop -name "$window_name" | grep _NET_WM_STATE_FULLSCREEN`
+        else
+            isNamedFulscreen=""
+        fi
+
         if [[ "$isActiveWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]] || [[ "$isTopWinFullscreen" = *NET_WM_STATE_FULLSCREEN* ]]; then
             isAppRunning && delayScreensaver
+        fi
+
+        # If we are detecting by named application, then we need to detect if any audio is playing.
+        # Detecting by name is used for multiple monitors where the video might be playing, but
+        # not in focus.
+        if [[ "$isNamedFullscreen" = *NET_WM_STATE_FULLSCREEN* ]]; then
+            checkAudioPlaying && delayScreensaver
         fi
     done
 }
@@ -140,7 +157,7 @@ checkFullscreen() {
 isAppRunning() {
     # Get title of active window
     active_win_title=`xprop -id $active_win_id | grep "WM_CLASS(STRING)" | sed 's/^.*", //;s/"//g'`
-    
+
     case "$active_win_title" in
     *[Cc]hromium*)
         [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chromium --type=ppapi"` -ge 1 ] && return 0
@@ -168,6 +185,9 @@ isAppRunning() {
     *MPlayer|mplayer*)
         [ "$mplayer_detection" = 1 ] && [ `pgrep -c mplayer` -ge 1 ] && checkAudio mplayer && return 0
         ;;
+    *plexmediaplayer*)
+        [ "$plex_detection" = 1 ] && [ `pgrep -c plexmediaplayer` -ge 1 ] && checkAudio "Plex Media Player" && return 0
+        ;;
     *vlc*|*VLC*)
         [ $vlc_detection = 1 ] && [ `pgrep -c vlc` -ge 1 ] && checkAudio vlc && return 0
         ;;
@@ -193,6 +213,16 @@ isAppRunning() {
     false
 }
 
+checkAudioPlaying() {
+    # Check if any application is playing sounds in pulse
+    # This is useful if your application keeps the stream in pulse open
+    # but, lists it as CORKED for example.
+    # It's also useful if you watch videos on multiple monitors and might not
+    # have the video in focus.
+    [ $audio_detection = 0 ] && return 0
+    pacmd list-sink-inputs | grep -Eiq "RUNNING"
+}
+
 checkAudio() {
     # Check if application is streaming sound to PulseAudio
     [ $audio_detection = 0 ] && return 0
@@ -215,7 +245,7 @@ delayScreensaver() {
     "freedesktop-screensaver" )
         dbus-send --session --reply-timeout=2000 --type=method_call --dest=org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.SimulateUserActivity;;
     esac
-    
+
     # Check if DPMS is on. If it is, deactivate and reactivate again. If it is not, do nothing.
     dpmsStatus=`xset -q | grep -c 'DPMS is Enabled'`
     [ "$dpmsStatus" = 1 ] && xset -dpms && xset dpms
@@ -225,19 +255,21 @@ help() {
     echo "USAGE:    $ lighsonplus [FLAG1 ARG1] ... [FLAGn ARGn]"
     echo "FLAGS (ARGUMENTS must be 0 or 1, except stated otherwise):"
     echo ""
-    echo "  -d,  --delay            Time interval in minutes, default is 1 min"
-    echo "  -pa, --audio            Audio detection"
-    echo "  -mp, --mplayer          mplayer detection"
-    echo "  -v,  --vlc              VLC detection"
-    echo "  -t,  --totem            Totem detection"
-    echo "  -ff, --firefox-flash    Firefox flash plugin detection"
-    echo "  -cf, --chromium-flash   Chromium flash plugin detection"
-    echo "  -ca, --chrome-app       Chrome app detection, app name must be passed"
-    echo "  -wf, --webkit-flash     Webkit flash detection"
-    echo "  -h5, --html5            HTML5 detection"
-    echo "  -s,  --steam            Steam detection"
-    echo "  -mt, --minitube         MiniTube detection"
-    echo "  -la, --minload          Load average detection"
+    echo "  -d,  --delay             Time interval in minutes, default is 1 min"
+    echo "  -pa, --audio             Audio detection"
+    echo "  -mp, --mplayer           mplayer detection"
+    echo "  -v,  --vlc               VLC detection"
+    echo "  -t,  --totem             Totem detection"
+    echo "  -pl, --plex-media-player Plex Media Player detection"
+    echo "  -ff, --firefox-flash     Firefox flash plugin detection"
+    echo "  -cf, --chromium-flash    Chromium flash plugin detection"
+    echo "  -ca, --chrome-app        Chrome app detection, app name must be passed"
+    echo "  -wf, --webkit-flash      Webkit flash detection"
+    echo "  -h5, --html5             HTML5 detection"
+    echo "  -s,  --steam             Steam detection"
+    echo "  -mt, --minitube          MiniTube detection"
+    echo "  -la, --minload           Load average detection"
+    echo "  -wn, --window-name       Detect by window name"
 }
 
 checkBool() {
@@ -250,6 +282,8 @@ while [ -n "$1" ]; do
             [[ -z "$2" || "$2" = *[^0-9]* ]] && die "Invalid argument. Time in minutes expected after \"$1\" flag. Got \"$2\"" || delay=$2;;
         "-ca" | "--chrome-app" )
             [ -n "$2" ] && chrome_app_name="$2" || die "Missing argument. Chrome app name expected after \"$1\" flag.";;
+        "-wn" | "--window-name" )
+            [ -n "$2" ] && window_name="$2" || die "Missing argument. Window name expected after \"$1\" flag.";;
         "-la" | "--minload" )
             [ -n "$2" ] && [[ "$(echo "$2 > 0" | bc -q)" -eq 1 ]] && minload=$2 || die "Invalid argument. >0 expected after \"$1\" flag.";;
         "-pa" | "--audio" )
@@ -260,6 +294,8 @@ while [ -n "$1" ]; do
             checkBool "$@"; vlc_detection=$2;;
         "-t" | "--totem" )
             checkBool "$@"; totem_detection=$2;;
+        "-pl" | "--plex-media-player" )
+            checkBool "$@"; plex_detection=$2;;
         "-ff" | "--firefox-flash" )
             checkBool "$@"; firefox_flash_detection=$2;;
         "-cf" | "--chromium-flash" )
@@ -277,7 +313,7 @@ while [ -n "$1" ]; do
         * )
             die "Invalid argument. See -h, --help for more information.";;
     esac
-    
+
     # Arguments must always be passed in tuples
     shift 2
 done
