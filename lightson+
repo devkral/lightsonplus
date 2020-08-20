@@ -168,7 +168,7 @@ isAppRunning() {
         [ "$html5_detection" = 1 ] && [ `pgrep -c chrome` -ge 1 ] && checkAudio "chrom" && return 0
         ;;
     *[Ff]irefox*)
-        [ "$html5_detection" = 1 ] && [ `pgrep -c firefox` -ge 1 ] && checkAudio "firefox" && return 0
+        [ "$html5_detection" = 1 ] && [ `pgrep -fc firefox` -ge 1 ] && checkAudio "firefox" && return 0
         ;;
     *opera*)
         [ "$html5_detection" = 1 ] && [ `pgrep -c opera` -ge 1 ] && checkAudio "opera" && return 0
