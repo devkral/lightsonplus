@@ -23,6 +23,7 @@
 
 
 # Select the programs to be checked
+mpv_detection=0
 mplayer_detection=0
 plex_detection=0
 vlc_detection=1
@@ -189,6 +190,9 @@ isAppRunning() {
     *MPlayer|mplayer*)
         [ "$mplayer_detection" = 1 ] && [ `pgrep -c mplayer` -ge 1 ] && checkAudio mplayer && return 0
         ;;
+    *mpv*|*MPV*)
+        [ "$mpv_detection" = 1 ] && [ `pgrep -c mpv` -ge 1 ] && checkAudio mpv && return 0
+        ;;
     *plexmediaplayer*)
         [ "$plex_detection" = 1 ] && [ `pgrep -c plexmediaplayer` -ge 1 ] && checkAudio "Plex Media Player" && return 0
         ;;
@@ -261,6 +265,7 @@ help() {
     echo ""
     echo "  -d,  --delay             Time interval in minutes, default is 1 min"
     echo "  -pa, --audio             Audio detection"
+    echo "  -m,  --mpv               mpv detection"
     echo "  -mp, --mplayer           mplayer detection"
     echo "  -v,  --vlc               VLC detection"
     echo "  -t,  --totem             Totem detection"
@@ -292,7 +297,9 @@ while [ -n "$1" ]; do
             [ -n "$2" ] && [[ "$(echo "$2 > 0" | bc -q)" -eq 1 ]] && minload=$2 || die "Invalid argument. >0 expected after \"$1\" flag.";;
         "-pa" | "--audio" )
             checkBool "$@"; audio_detection=$2;;
-       "-mp" | "--mplayer" )
+        "-m" | "--mpv" )
+            checkBool "$@"; mpv_detection=$2;;
+        "-mp" | "--mplayer" )
             checkBool "$@"; mplayer_detection=$2;;
         "-v" | "--vlc" )
             checkBool "$@"; vlc_detection=$2;;
