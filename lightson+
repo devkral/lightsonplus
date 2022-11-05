@@ -155,61 +155,61 @@ checkFullscreen() {
 
 isAppRunning() {
     # Get title of active window
-    active_win_title=`xprop -id $active_win_id | grep "WM_CLASS(STRING)" | sed 's/^.*", //;s/"//g'`
+    active_win_title=`xprop -id $active_win_id | grep "WM_CLASS(STRING)" | cut -d'"' -f4 | awk '{print tolower($0)}'`
 
     case "$active_win_title" in
-    *[Cc]hromium*)
-        [ "$flash_detection" = 1 ] && [ `pgrep -fc "chromium --type=ppapi"` -ge 1 ] && return 0
-        [ "$html5_detection" = 1 ] && [ `pgrep -c chromium` -ge 1 ] && checkAudio "chromium" && return 0
+    *chromium*)
+        [ "$flash_detection" = 1 ] && [ `pgrep -ifc "chromium --type=ppapi"` -ge 1 ] && return 0
+        [ "$html5_detection" = 1 ] && [ `pgrep -ic chromium` -ge 1 ] && checkAudio "chromium" && return 0
         ;;
-    *[Cc]hrome*)
-        [ "$flash_detection" = 1 ] && [ `pgrep -fc "chrome --type=ppapi"` -ge 1 ] && return 0
-        [ "$html5_detection" = 1 ] && [ `pgrep -c chrome` -ge 1 ] && checkAudio "chrom" && return 0
+    *chrome*)
+        [ "$flash_detection" = 1 ] && [ `pgrep -ifc "chrome --type=ppapi"` -ge 1 ] && return 0
+        [ "$html5_detection" = 1 ] && [ `pgrep -ic chrome` -ge 1 ] && checkAudio "chrome" && return 0
         ;;
-    *[Ff]irefox*)
-        [ "$html5_detection" = 1 ] && [ `pgrep -fc firefox` -ge 1 ] && checkAudio "firefox" && return 0
+    *firefox*)
+        [ "$html5_detection" = 1 ] && [ `pgrep -ifc firefox` -ge 1 ] && checkAudio "firefox" && return 0
         ;;
-    *[Bb]rave*)
-        [ "$flash_detection" = 1 ] && [ `pgrep -fc "brave --type=ppapi"` -ge 1 ] && return 0
-        [ "$html5_detection" = 1 ] && [ `pgrep -c brave` -ge 1 ] && checkAudio "brave" && return 0
+    *brave*)
+        [ "$flash_detection" = 1 ] && [ `pgrep -ifc "brave --type=ppapi"` -ge 1 ] && return 0
+        [ "$html5_detection" = 1 ] && [ `pgrep -ic brave` -ge 1 ] && checkAudio "brave" && return 0
         ;;
     *opera*)
-        [ "$html5_detection" = 1 ] && [ `pgrep -c opera` -ge 1 ] && checkAudio "opera" && return 0
+        [ "$html5_detection" = 1 ] && [ `pgrep -ic opera` -ge 1 ] && checkAudio "opera" && return 0
         ;;
     *epiphany*)
-        [ "$html5_detection" = 1 ] && [ `pgrep -c epiphany` -ge 1 ] && checkAudio "epiphany" && return 0
+        [ "$html5_detection" = 1 ] && [ `pgrep -ic epiphany` -ge 1 ] && checkAudio "epiphany" && return 0
         ;;
     *unknown*|*plugin-container*)  # firefox
-        [ "$flash_detection" = 1 ] && [ `pgrep -c plugin-container` -ge 1 ] && return 0
+        [ "$flash_detection" = 1 ] && [ `pgrep -ic plugin-container` -ge 1 ] && return 0
         ;;
-    *WebKitPluginProcess*)
-        [ "$flash_detection" = 1 ] && [ `pgrep -fc ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 0
+    *webKitpluginprocess*)
+        [ "$flash_detection" = 1 ] && [ `pgrep -ifc ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 0
         ;;
-    *MPlayer|mplayer*)
-        [ "$mplayer_detection" = 1 ] && [ `pgrep -c mplayer` -ge 1 ] && checkAudio mplayer && return 0
+    *mplayer*)
+        [ "$mplayer_detection" = 1 ] && [ `pgrep -ic mplayer` -ge 1 ] && checkAudio mplayer && return 0
         ;;
-    *mpv*|*MPV*)
-        [ "$mpv_detection" = 1 ] && [ `pgrep -c mpv` -ge 1 ] && checkAudio mpv && return 0
+    *mpv*)
+        [ "$mpv_detection" = 1 ] && [ `pgrep -ic mpv` -ge 1 ] && checkAudio mpv && return 0
         ;;
     *plexmediaplayer*)
-        [ "$plex_detection" = 1 ] && [ `pgrep -c plexmediaplayer` -ge 1 ] && checkAudio "Plex Media Player" && return 0
+        [ "$plex_detection" = 1 ] && [ `pgrep -ic plexmediaplayer` -ge 1 ] && checkAudio plexmediaplayer && return 0
         ;;
-    *vlc*|*VLC*)
-        [ $vlc_detection = 1 ] && [ `pgrep -c vlc` -ge 1 ] && checkAudio vlc && return 0
+    *vlc*)
+        [ $vlc_detection = 1 ] && [ `pgrep -ic vlc` -ge 1 ] && checkAudio vlc && return 0
         ;;
     *totem*)
-        [ $totem_detection = 1 ] && [ `pgrep -c totem` -ge 1 ] && checkAudio totem && return 0
+        [ $totem_detection = 1 ] && [ `pgrep -ic totem` -ge 1 ] && checkAudio totem && return 0
         ;;
     *steam*)
-        [ $steam_detection = 1 ] && [ `pgrep -c steam` -ge 1 ] && return 0
+        [ $steam_detection = 1 ] && [ `pgrep -ic steam` -ge 1 ] && return 0
         ;;
     *minitube*)
-        [ $minitube_detection = 1 ] && [ `pgrep -c minitube` -ge 1 ] && return 0
+        [ $minitube_detection = 1 ] && [ `pgrep -ic minitube` -ge 1 ] && return 0
         ;;
     *)
         if [ -n "$chrome_app_name" ]; then
             # Check if google chrome is running in app mode
-            [[ "$active_win_title" == *$chrome_app_name* ]] && [ `pgrep -fc "chrome --app"` -ge 1 ] && return 0
+            grep -iq "$chrome_app_name" <<< "$active_win_title" && [ `pgrep -ifc "chrome --app"` -ge 1 ] && return 0
         fi
         ;;
     esac
@@ -232,7 +232,7 @@ checkAudioPlaying() {
 checkAudio() {
     # Check if application is streaming sound to PulseAudio
     [ $audio_detection = 0 ] && return 0
-    pacmd list-sink-inputs | grep -Eiq "application.name = .*$1.*"
+    pacmd list-sink-inputs | sed 's/[ \t]//g' | grep -Eiq "application.name=.*$1"
 }
 
 delayScreensaver() {
