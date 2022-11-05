@@ -28,10 +28,8 @@ mplayer_detection=0
 plex_detection=0
 vlc_detection=1
 totem_detection=1
-firefox_flash_detection=1
-chromium_flash_detection=1
 #chrome_app_name="Netflix"
-webkit_flash_detection=1
+flash_detection=1
 html5_detection=1
 steam_detection=0
 minitube_detection=0
@@ -161,18 +159,18 @@ isAppRunning() {
 
     case "$active_win_title" in
     *[Cc]hromium*)
-        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chromium --type=ppapi"` -ge 1 ] && return 0
+        [ "$flash_detection" = 1 ] && [ `pgrep -fc "chromium --type=ppapi"` -ge 1 ] && return 0
         [ "$html5_detection" = 1 ] && [ `pgrep -c chromium` -ge 1 ] && checkAudio "chromium" && return 0
         ;;
     *[Cc]hrome*)
-        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chrome --type=ppapi"` -ge 1 ] && return 0
+        [ "$flash_detection" = 1 ] && [ `pgrep -fc "chrome --type=ppapi"` -ge 1 ] && return 0
         [ "$html5_detection" = 1 ] && [ `pgrep -c chrome` -ge 1 ] && checkAudio "chrom" && return 0
         ;;
     *[Ff]irefox*)
         [ "$html5_detection" = 1 ] && [ `pgrep -fc firefox` -ge 1 ] && checkAudio "firefox" && return 0
         ;;
     *[Bb]rave*)
-        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "brave --type=ppapi"` -ge 1 ] && return 0
+        [ "$flash_detection" = 1 ] && [ `pgrep -fc "brave --type=ppapi"` -ge 1 ] && return 0
         [ "$html5_detection" = 1 ] && [ `pgrep -c brave` -ge 1 ] && checkAudio "brave" && return 0
         ;;
     *opera*)
@@ -181,11 +179,11 @@ isAppRunning() {
     *epiphany*)
         [ "$html5_detection" = 1 ] && [ `pgrep -c epiphany` -ge 1 ] && checkAudio "epiphany" && return 0
         ;;
-    *unknown*|*plugin-container*)
-        [ "$firefox_flash_detection" = 1 ] && [ `pgrep -c plugin-container` -ge 1 ] && return 0
+    *unknown*|*plugin-container*)  # firefox
+        [ "$flash_detection" = 1 ] && [ `pgrep -c plugin-container` -ge 1 ] && return 0
         ;;
     *WebKitPluginProcess*)
-        [ "$webkit_flash_detection" = 1 ] && [ `pgrep -fc ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 0
+        [ "$flash_detection" = 1 ] && [ `pgrep -fc ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 0
         ;;
     *MPlayer|mplayer*)
         [ "$mplayer_detection" = 1 ] && [ `pgrep -c mplayer` -ge 1 ] && checkAudio mplayer && return 0
@@ -270,10 +268,11 @@ help() {
     echo "  -v,  --vlc               VLC detection"
     echo "  -t,  --totem             Totem detection"
     echo "  -pl, --plex-media-player Plex Media Player detection"
-    echo "  -ff, --firefox-flash     Firefox flash plugin detection"
-    echo "  -cf, --chromium-flash    Chromium flash plugin detection"
+    echo "  -ff, --firefox-flash     Firefox flash plugin detection (Deprecated, use --flash instead)"
+    echo "  -cf, --chromium-flash    Chromium flash plugin detection (Deprecated, use --flash instead)"
     echo "  -ca, --chrome-app        Chrome app detection, app name must be passed"
-    echo "  -wf, --webkit-flash      Webkit flash detection"
+    echo "  -wf, --webkit-flash      Webkit flash detection (Deprecated, use --flash instead)"
+    echo "  -f,  --flash             Flash detection (Supported: firefox, chromium, webkit)"
     echo "  -h5, --html5             HTML5 detection"
     echo "  -s,  --steam             Steam detection"
     echo "  -mt, --minitube          MiniTube detection"
@@ -308,11 +307,13 @@ while [ -n "$1" ]; do
         "-pl" | "--plex-media-player" )
             checkBool "$@"; plex_detection=$2;;
         "-ff" | "--firefox-flash" )
-            checkBool "$@"; firefox_flash_detection=$2;;
+            checkBool "$@"; [ "$2" = 1 ] && echo "Deprecated $1: use --flash instead" && flash_detection=1;;
         "-cf" | "--chromium-flash" )
-            checkBool "$@"; chromium_flash_detection=$2;;
+            checkBool "$@"; [ "$2" = 1 ] && echo "Deprecated $1: use --flash instead" && flash_detection=1;;
         "-wf" | "--webkit-flash" )
-            checkBool "$@"; webkit_flash_detection=$2;;
+            checkBool "$@"; [ "$2" = 1 ] && echo "Deprecated $1: use --flash instead" && flash_detection=1;;
+        "-f"  | "--flash" )
+            checkBool "$@"; flash_detection=$2;;
         "-h5" | "--html5" )
             checkBool "$@"; html5_detection=$2;;
         "-s" | "--steam" )
