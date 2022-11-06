@@ -261,31 +261,60 @@ delayScreensaver() {
 }
 
 help() {
-    echo "USAGE:    $ lighsonplus [FLAG1 ARG1] ... [FLAGn ARGn]"
-    echo "FLAGS (ARGUMENTS must be 0 or 1, except stated otherwise):"
-    echo ""
-    echo "  -d,  --delay             Time interval in minutes, default is 1 min"
-    echo "  -pa, --audio             Audio detection"
-    echo "  -m,  --mpv               mpv detection"
-    echo "  -mp, --mplayer           mplayer detection"
-    echo "  -v,  --vlc               VLC detection"
-    echo "  -t,  --totem             Totem detection"
-    echo "  -pl, --plexmediaplayer   Plex Media Player detection"
-    echo "  -ff, --firefox-flash     Firefox flash plugin detection (Deprecated, use --flash instead)"
-    echo "  -cf, --chromium-flash    Chromium flash plugin detection (Deprecated, use --flash instead)"
-    echo "  -ca, --chrome-app        Chrome app detection, app name must be passed"
-    echo "  -wf, --webkit-flash      Webkit flash detection (Deprecated, use --flash instead)"
-    echo "  -f,  --flash             Flash detection (Supported: firefox, chromium, webkit)"
-    echo "  -h5, --html5             HTML5 detection"
-    echo "  -s,  --steam             Steam detection"
-    echo "  -mt, --minitube          MiniTube detection"
-    echo "  -la, --minload           Load average detection"
-    echo "  -wn, --window-name       Detect by window name"
+    cat <<EOF
+USAGE:    $ lighsonplus [FLAG1 ARG1] ... [FLAGn ARGn]
+FLAGS (ARGUMENTS must be 0 or 1, except stated otherwise):
+
+  -d,  --delay             Time interval in minutes, default is 1 min
+  -pa, --audio             Audio detection
+  -ca, --chrome-app        Chrome app detection, app name must be passed
+  -f,  --flash             Flash detection (Supported: firefox, chromium, webkit)
+  -h5, --html5             HTML5 detection
+  -la, --minload           Load average detection
+  -wn, --window-name       Detect by window name
+
+$(for app in "${!checked_apps[@]}"; do
+    printf "  %-5s%-20s%s\n" "${app_short_flags[$app]}," "--$app" "${app^} detection"
+done)
+EOF
 }
 
 checkBool() {
     [ -n "$2" ] && [[ $2 = [01] ]] || die "Invalid argument. 0 or 1 expected after \"$1\" flag."
 }
+
+init_app_short_flags() {
+    for app in "${!checked_apps[@]}"; do
+        [ "${app_short_flags[$app]}" ] && continue
+        for i in $(seq 1 ${#app}); do
+            if ! grep -q -- "${app:0:i} " <<< "${app_short_flags[*]} "; then  # spaces matter
+                app_short_flags[$app]="-${app:0:i}"
+                break
+            fi
+        done
+    done
+}
+
+# this is hardcoded for retro-compatibilty
+declare -A app_short_flags=(
+    [mpv]=-m
+    [mplayer]=-mp
+    [vlc]=-v
+    [totem]=-t
+    [plexmediaplayer]=-pl
+    [steam]=-s
+    [minitube]=-mt
+
+    [delay]=-d
+    [audio]=-pa
+    [chrome-app]=-ca
+    [flash]=-f
+    [html5]=-h5
+    [minload]=-la
+    [window-name]=-wn
+)
+
+init_app_short_flags
 
 while [ -n "$1" ]; do
     case $1 in
@@ -299,16 +328,6 @@ while [ -n "$1" ]; do
             [ -n "$2" ] && [[ "$(echo "$2 > 0" | bc -q)" -eq 1 ]] && minload=$2 || die "Invalid argument. >0 expected after \"$1\" flag.";;
         "-pa" | "--audio" )
             checkBool "$@"; audio_detection=$2;;
-        "-m" | "--mpv" )
-            checkBool "$@"; checked_apps[mpv]=$2;;
-        "-mp" | "--mplayer" )
-            checkBool "$@"; checked_apps[mplayer]=$2;;
-        "-v" | "--vlc" )
-            checkBool "$@"; checked_apps[vlc]=$2;;
-        "-t" | "--totem" )
-            checkBool "$@"; checked_apps[totem]=$2;;
-        "-pl" | "--plexmediaplayer" )
-            checkBool "$@"; checked_apps[plexmediaplayer]=$2;;
         "--plex-media-player" )
             checkBool "$@"; [ "$2" = 1 ] && echo "Deprecated $1: use --plexmediaplayer instead" && checked_apps[plexmediaplayer]=1;;
         "-ff" | "--firefox-flash" )
@@ -321,14 +340,16 @@ while [ -n "$1" ]; do
             checkBool "$@"; flash_detection=$2;;
         "-h5" | "--html5" )
             checkBool "$@"; html5_detection=$2;;
-        "-s" | "--steam" )
-            checkBool "$@"; checked_apps[steam]=$2;;
-        "-mt" | "--minitube" )
-            checkBool "$@"; checked_apps[minitube]=$2;;
         "-h" | "--help" )
             help && exit 0;;
         * )
-            die "Invalid argument. See -h, --help for more information.";;
+            for app in "${!checked_apps[@]}" FAIL; do
+                if [ "$1" = --$app ] || [ "$1" = "${app_short_flags[$app]}" ]; then
+                    checked_apps[$app]=$2
+                    break
+                fi
+            done
+            [ $app = FAIL ] && die "Invalid argument. See -h, --help for more information.";;
     esac
 
     # Arguments must always be passed in tuples
