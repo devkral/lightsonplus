@@ -23,18 +23,19 @@
 
 
 # Select the programs to be checked
-mpv_detection=0
-mplayer_detection=0
-plex_detection=0
-vlc_detection=1
-totem_detection=1
-firefox_flash_detection=1
-chromium_flash_detection=1
+declare -A checked_apps=(
+    [mpv]=0
+    [mplayer]=0
+    [plexmediaplayer]=0
+    [vlc]=1
+    [totem]=1
+    [steam]=0
+    [minitube]=0
+)
 #chrome_app_name="Netflix"
-webkit_flash_detection=1
+flash_detection=1
 html5_detection=1
-steam_detection=0
-minitube_detection=0
+
 audio_detection=0
 #minload=1.5
 delay=1
@@ -157,64 +158,45 @@ checkFullscreen() {
 
 isAppRunning() {
     # Get title of active window
-    active_win_title=`xprop -id $active_win_id | grep "WM_CLASS(STRING)" | sed 's/^.*", //;s/"//g'`
+    active_win_title=`xprop -id $active_win_id | grep "WM_CLASS(STRING)" | cut -d'"' -f4 | awk '{print tolower($0)}'`
 
-    case "$active_win_title" in
-    *[Cc]hromium*)
-        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chromium --type=ppapi"` -ge 1 ] && return 0
-        [ "$html5_detection" = 1 ] && [ `pgrep -c chromium` -ge 1 ] && checkAudio "chromium" && return 0
+    for app in "${!checked_apps[@]}"; do
+        grep -iq "$app" <<< "$active_win_title" \
+            && [ "${checked_apps[$app]}" = 1 ] \
+            && [ `pgrep -ic "$app"` -ge 1 ] \
+            && checkAudio "$app" \
+            && return 0
+    done
+
+    [ "$html5_detection" = 1 ] && for app in chromium chrome firefox brave opera epiphany; do
+        grep -iq "$app" <<< "$active_win_title" \
+            && [ `pgrep -ic "$app"` -ge 1 ] \
+            && checkAudio "$app" \
+            && return 0
+    done
+
+    [ "$flash_detection" = 1 ] && case "$active_win_title" in
+    *chromium*)
+        [ `pgrep -ifc "chromium --type=ppapi"` -ge 1 ] && return 0
         ;;
-    *[Cc]hrome*)
-        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "chrome --type=ppapi"` -ge 1 ] && return 0
-        [ "$html5_detection" = 1 ] && [ `pgrep -c chrome` -ge 1 ] && checkAudio "chrom" && return 0
+    *chrome*)
+        [ `pgrep -ifc "chrome --type=ppapi"` -ge 1 ] && return 0
         ;;
-    *[Ff]irefox*)
-        [ "$html5_detection" = 1 ] && [ `pgrep -fc firefox` -ge 1 ] && checkAudio "firefox" && return 0
+    *brave*)
+        [ `pgrep -ifc "brave --type=ppapi"` -ge 1 ] && return 0
         ;;
-    *[Bb]rave*)
-        [ "$chromium_flash_detection" = 1 ] && [ `pgrep -fc "brave --type=ppapi"` -ge 1 ] && return 0
-        [ "$html5_detection" = 1 ] && [ `pgrep -c brave` -ge 1 ] && checkAudio "brave" && return 0
+    *unknown*|*plugin-container*)  # firefox
+        [ `pgrep -ic plugin-container` -ge 1 ] && return 0
         ;;
-    *opera*)
-        [ "$html5_detection" = 1 ] && [ `pgrep -c opera` -ge 1 ] && checkAudio "opera" && return 0
-        ;;
-    *epiphany*)
-        [ "$html5_detection" = 1 ] && [ `pgrep -c epiphany` -ge 1 ] && checkAudio "epiphany" && return 0
-        ;;
-    *unknown*|*plugin-container*)
-        [ "$firefox_flash_detection" = 1 ] && [ `pgrep -c plugin-container` -ge 1 ] && return 0
-        ;;
-    *WebKitPluginProcess*)
-        [ "$webkit_flash_detection" = 1 ] && [ `pgrep -fc ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 0
-        ;;
-    *MPlayer|mplayer*)
-        [ "$mplayer_detection" = 1 ] && [ `pgrep -c mplayer` -ge 1 ] && checkAudio mplayer && return 0
-        ;;
-    *mpv*|*MPV*)
-        [ "$mpv_detection" = 1 ] && [ `pgrep -c mpv` -ge 1 ] && checkAudio mpv && return 0
-        ;;
-    *plexmediaplayer*)
-        [ "$plex_detection" = 1 ] && [ `pgrep -c plexmediaplayer` -ge 1 ] && checkAudio "Plex Media Player" && return 0
-        ;;
-    *vlc*|*VLC*)
-        [ $vlc_detection = 1 ] && [ `pgrep -c vlc` -ge 1 ] && checkAudio vlc && return 0
-        ;;
-    *totem*)
-        [ $totem_detection = 1 ] && [ `pgrep -c totem` -ge 1 ] && checkAudio totem && return 0
-        ;;
-    *steam*)
-        [ $steam_detection = 1 ] && [ `pgrep -c steam` -ge 1 ] && return 0
-        ;;
-    *minitube*)
-        [ $minitube_detection = 1 ] && [ `pgrep -c minitube` -ge 1 ] && return 0
-        ;;
-    *)
-        if [ -n "$chrome_app_name" ]; then
-            # Check if google chrome is running in app mode
-            [[ "$active_win_title" == *$chrome_app_name* ]] && [ `pgrep -fc "chrome --app"` -ge 1 ] && return 0
-        fi
+    *webKitpluginprocess*)
+        [ `pgrep -ifc ".*WebKitPluginProcess.*flashp.*"` -ge 1 ] && return 0
         ;;
     esac
+
+    if [ -n "$chrome_app_name" ]; then
+        # Check if google chrome is running in app mode
+        grep -iq "$chrome_app_name" <<< "$active_win_title" && [ `pgrep -ifc "chrome --app"` -ge 1 ] && return 0
+    fi
 
     [ -n "$minload" ] && [ "$(echo "$(sed 's/ .*$//' /proc/loadavg) > $minload" | bc -q)" -eq "1" ] && return 0
 
@@ -234,7 +216,7 @@ checkAudioPlaying() {
 checkAudio() {
     # Check if application is streaming sound to PulseAudio
     [ $audio_detection = 0 ] && return 0
-    pacmd list-sink-inputs | grep -Eiq "application.name = .*$1.*"
+    pacmd list-sink-inputs | sed 's/[ \t]//g' | grep -Eiq "application.name=.*$1"
 }
 
 delayScreensaver() {
@@ -260,30 +242,60 @@ delayScreensaver() {
 }
 
 help() {
-    echo "USAGE:    $ lighsonplus [FLAG1 ARG1] ... [FLAGn ARGn]"
-    echo "FLAGS (ARGUMENTS must be 0 or 1, except stated otherwise):"
-    echo ""
-    echo "  -d,  --delay             Time interval in minutes, default is 1 min"
-    echo "  -pa, --audio             Audio detection"
-    echo "  -m,  --mpv               mpv detection"
-    echo "  -mp, --mplayer           mplayer detection"
-    echo "  -v,  --vlc               VLC detection"
-    echo "  -t,  --totem             Totem detection"
-    echo "  -pl, --plex-media-player Plex Media Player detection"
-    echo "  -ff, --firefox-flash     Firefox flash plugin detection"
-    echo "  -cf, --chromium-flash    Chromium flash plugin detection"
-    echo "  -ca, --chrome-app        Chrome app detection, app name must be passed"
-    echo "  -wf, --webkit-flash      Webkit flash detection"
-    echo "  -h5, --html5             HTML5 detection"
-    echo "  -s,  --steam             Steam detection"
-    echo "  -mt, --minitube          MiniTube detection"
-    echo "  -la, --minload           Load average detection"
-    echo "  -wn, --window-name       Detect by window name"
+    cat <<EOF
+USAGE:    $ lighsonplus [FLAG1 ARG1] ... [FLAGn ARGn]
+FLAGS (ARGUMENTS must be 0 or 1, except stated otherwise):
+
+  -d,  --delay             Time interval in minutes, default is 1 min
+  -pa, --audio             Audio detection
+  -ca, --chrome-app        Chrome app detection, app name must be passed
+  -f,  --flash             Flash detection (Supported: firefox, chromium, webkit)
+  -h5, --html5             HTML5 detection
+  -la, --minload           Load average detection
+  -wn, --window-name       Detect by window name
+
+$(for app in "${!checked_apps[@]}"; do
+    printf "  %-5s%-20s%s\n" "${app_short_flags[$app]}," "--$app" "${app^} detection"
+done)
+EOF
 }
 
 checkBool() {
     [ -n "$2" ] && [[ $2 = [01] ]] || die "Invalid argument. 0 or 1 expected after \"$1\" flag."
 }
+
+init_app_short_flags() {
+    for app in "${!checked_apps[@]}"; do
+        [ "${app_short_flags[$app]}" ] && continue
+        for i in $(seq 1 ${#app}); do
+            if ! grep -q -- "${app:0:i} " <<< "${app_short_flags[*]} "; then  # spaces matter
+                app_short_flags[$app]="-${app:0:i}"
+                break
+            fi
+        done
+    done
+}
+
+# this is hardcoded for retro-compatibilty
+declare -A app_short_flags=(
+    [mpv]=-m
+    [mplayer]=-mp
+    [vlc]=-v
+    [totem]=-t
+    [plexmediaplayer]=-pl
+    [steam]=-s
+    [minitube]=-mt
+
+    [delay]=-d
+    [audio]=-pa
+    [chrome-app]=-ca
+    [flash]=-f
+    [html5]=-h5
+    [minload]=-la
+    [window-name]=-wn
+)
+
+init_app_short_flags
 
 while [ -n "$1" ]; do
     case $1 in
@@ -297,32 +309,28 @@ while [ -n "$1" ]; do
             [ -n "$2" ] && [[ "$(echo "$2 > 0" | bc -q)" -eq 1 ]] && minload=$2 || die "Invalid argument. >0 expected after \"$1\" flag.";;
         "-pa" | "--audio" )
             checkBool "$@"; audio_detection=$2;;
-        "-m" | "--mpv" )
-            checkBool "$@"; mpv_detection=$2;;
-        "-mp" | "--mplayer" )
-            checkBool "$@"; mplayer_detection=$2;;
-        "-v" | "--vlc" )
-            checkBool "$@"; vlc_detection=$2;;
-        "-t" | "--totem" )
-            checkBool "$@"; totem_detection=$2;;
-        "-pl" | "--plex-media-player" )
-            checkBool "$@"; plex_detection=$2;;
+        "--plex-media-player" )
+            checkBool "$@"; [ "$2" = 1 ] && echo "Deprecated $1: use --plexmediaplayer instead" && checked_apps[plexmediaplayer]=1;;
         "-ff" | "--firefox-flash" )
-            checkBool "$@"; firefox_flash_detection=$2;;
+            checkBool "$@"; [ "$2" = 1 ] && echo "Deprecated $1: use --flash instead" && flash_detection=1;;
         "-cf" | "--chromium-flash" )
-            checkBool "$@"; chromium_flash_detection=$2;;
+            checkBool "$@"; [ "$2" = 1 ] && echo "Deprecated $1: use --flash instead" && flash_detection=1;;
         "-wf" | "--webkit-flash" )
-            checkBool "$@"; webkit_flash_detection=$2;;
+            checkBool "$@"; [ "$2" = 1 ] && echo "Deprecated $1: use --flash instead" && flash_detection=1;;
+        "-f"  | "--flash" )
+            checkBool "$@"; flash_detection=$2;;
         "-h5" | "--html5" )
             checkBool "$@"; html5_detection=$2;;
-        "-s" | "--steam" )
-            checkBool "$@"; steam_detection=$2;;
-        "-mt" | "--minitube" )
-            checkBool "$@"; minitube_detection=$2;;
         "-h" | "--help" )
             help && exit 0;;
         * )
-            die "Invalid argument. See -h, --help for more information.";;
+            for app in "${!checked_apps[@]}" FAIL; do
+                if [ "$1" = --$app ] || [ "$1" = "${app_short_flags[$app]}" ]; then
+                    checked_apps[$app]=$2
+                    break
+                fi
+            done
+            [ $app = FAIL ] && die "Invalid argument. See -h, --help for more information.";;
     esac
 
     # Arguments must always be passed in tuples
